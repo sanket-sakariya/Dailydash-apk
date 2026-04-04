@@ -155,6 +155,7 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   final _dashboardKey = GlobalKey<DashboardScreenState>();
+  final _analyticsKey = GlobalKey<AnalyticsScreenState>();
 
   @override
   void initState() {
@@ -176,6 +177,12 @@ class _MainShellState extends State<MainShell> {
       setState(() {
         _currentIndex = navigationIndexNotifier.value;
       });
+      // Reload data when switching tabs
+      if (_currentIndex == 0) {
+        _dashboardKey.currentState?.loadData();
+      } else if (_currentIndex == 1) {
+        _analyticsKey.currentState?.loadData();
+      }
     }
   }
 
@@ -197,7 +204,7 @@ class _MainShellState extends State<MainShell> {
             index: _currentIndex,
             children: [
               DashboardScreen(key: _dashboardKey),
-              const AnalyticsScreen(),
+              AnalyticsScreen(key: _analyticsKey),
               const SettingsScreen(),
             ],
           ),
@@ -252,6 +259,8 @@ class _MainShellState extends State<MainShell> {
         setState(() => _currentIndex = index);
         if (index == 0) {
           _dashboardKey.currentState?.loadData();
+        } else if (index == 1) {
+          _analyticsKey.currentState?.loadData();
         }
       },
       child: Container(

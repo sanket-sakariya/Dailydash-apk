@@ -9,10 +9,10 @@ class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
 
   @override
-  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
+  State<AnalyticsScreen> createState() => AnalyticsScreenState();
 }
 
-class _AnalyticsScreenState extends State<AnalyticsScreen> {
+class AnalyticsScreenState extends State<AnalyticsScreen> {
   Map<String, double> _categorySpending = {};
   Map<String, double> _weeklySpending = {};
   double _totalSpent = 0;
@@ -24,10 +24,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    loadData();
   }
 
-  Future<void> _loadData() async {
+  Future<void> loadData() async {
     final categorySpending = await repo.getCategorySpending();
     final weeklySpending = await repo.getWeeklySpending();
     final totalSpent = await repo.getTotalSpentThisMonth();

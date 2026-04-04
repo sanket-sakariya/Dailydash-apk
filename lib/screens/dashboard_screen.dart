@@ -518,6 +518,229 @@ class DashboardScreenState extends State<DashboardScreen> {
     ).then((_) => loadData());
   }
 
+  void _showTransactionDetails(Expense expense) {
+    final colors = context.colors;
+    final isIncome = expense.isIncome;
+    final categoryColor = _getCategoryColor(expense.category, colors);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.onSurfaceDim,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Category icon and amount
+              Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: categoryColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      _getCategoryIcon(expense.category),
+                      color: categoryColor,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          expense.description,
+                          style: TextStyle(
+                            color: colors.onSurface,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          expense.category,
+                          style: TextStyle(
+                            color: categoryColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '${isIncome ? '+' : '-'}${currencyNotifier.symbol}${_formatAmount(expense.amount)}',
+                    style: TextStyle(
+                      color: isIncome ? colors.success : colors.onSurface,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Details
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    _buildDetailRow(
+                      icon: Icons.calendar_today,
+                      label: 'Date',
+                      value: DateFormat('EEEE, MMM dd, yyyy').format(expense.dateTime),
+                      colors: colors,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDetailRow(
+                      icon: Icons.access_time,
+                      label: 'Time',
+                      value: DateFormat('hh:mm a').format(expense.dateTime),
+                      colors: colors,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDetailRow(
+                      icon: Icons.payment,
+                      label: 'Payment Mode',
+                      value: expense.paymentMode,
+                      colors: colors,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _editExpense(expense);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: colors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.edit, color: colors.primary, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: colors.primary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _deleteExpense(expense);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: colors.error.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.delete, color: colors.error, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Delete',
+                              style: TextStyle(
+                                color: colors.error,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required DailyDashColorScheme colors,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: colors.onSurfaceDim, size: 20),
+        const SizedBox(width: 12),
+        Text(
+          label,
+          style: TextStyle(
+            color: colors.onSurfaceDim,
+            fontSize: 14,
+          ),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: TextStyle(
+            color: colors.onSurface,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTransactionItem(Expense expense, DailyDashColorScheme colors) {
     final isIncome = expense.isIncome;
     final categoryColor = _getCategoryColor(expense.category, colors);
@@ -568,7 +791,7 @@ class DashboardScreenState extends State<DashboardScreen> {
         return false;
       },
       child: GestureDetector(
-        onTap: () => _editExpense(expense),
+        onTap: () => _showTransactionDetails(expense),
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
           padding: const EdgeInsets.all(16),
