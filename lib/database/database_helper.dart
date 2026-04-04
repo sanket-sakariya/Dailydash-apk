@@ -172,6 +172,46 @@ class DatabaseHelper implements DataRepository {
   }
 
   @override
+  Future<Map<String, double>> getDailySpending() async {
+    final db = await database;
+    final now = DateTime.now();
+    final map = <String, double>{};
+    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    for (int i = 6; i >= 0; i--) {
+      final day = now.subtract(Duration(days: i));
+      final start = DateTime(day.year, day.month, day.day);
+      final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
+      final result = await db.rawQuery(
+        'SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date_time >= ? AND date_time <= ? AND is_income = 0',
+        [start.toIso8601String(), end.toIso8601String()],
+      );
+      map[dayNames[day.weekday - 1]] = (result.first['total'] as num?)?.toDouble() ?? 0;
+    }
+    return map;
+  }
+
+  @override
+  Future<Map<String, double>> getMonthlySpending() async {
+    final db = await database;
+    final now = DateTime.now();
+    final map = <String, double>{};
+    final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    for (int i = 11; i >= 0; i--) {
+      final month = DateTime(now.year, now.month - i, 1);
+      final start = DateTime(month.year, month.month, 1);
+      final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+      final result = await db.rawQuery(
+        'SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date_time >= ? AND date_time <= ? AND is_income = 0',
+        [start.toIso8601String(), end.toIso8601String()],
+      );
+      map[monthNames[month.month - 1]] = (result.first['total'] as num?)?.toDouble() ?? 0;
+    }
+    return map;
+  }
+
+  @override
   Future<double> getAverageDailySpend() async {
     final db = await database;
     final now = DateTime.now();

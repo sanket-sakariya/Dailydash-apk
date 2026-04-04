@@ -11,6 +11,8 @@ abstract class DataRepository {
   Future<double> getTotalSpentLastMonth();
   Future<Map<String, double>> getCategorySpending();
   Future<Map<String, double>> getWeeklySpending();
+  Future<Map<String, double>> getDailySpending();
+  Future<Map<String, double>> getMonthlySpending();
   Future<double> getAverageDailySpend();
   Future<String> getHighestCategory();
   Future<double> getSavings();

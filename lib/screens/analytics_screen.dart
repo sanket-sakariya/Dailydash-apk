@@ -14,12 +14,15 @@ class AnalyticsScreen extends StatefulWidget {
 
 class AnalyticsScreenState extends State<AnalyticsScreen> {
   Map<String, double> _categorySpending = {};
+  Map<String, double> _dailySpending = {};
   Map<String, double> _weeklySpending = {};
+  Map<String, double> _monthlySpending = {};
   double _totalSpent = 0;
   double _avgDailySpend = 0;
   String _highestCategory = '';
   double _highestCategoryAmount = 0;
   bool _loading = true;
+  String _selectedPeriod = 'Daily'; // Daily, Weekly, Monthly
 
   @override
   void initState() {
@@ -29,7 +32,9 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Future<void> loadData() async {
     final categorySpending = await repo.getCategorySpending();
+    final dailySpending = await repo.getDailySpending();
     final weeklySpending = await repo.getWeeklySpending();
+    final monthlySpending = await repo.getMonthlySpending();
     final totalSpent = await repo.getTotalSpentThisMonth();
     final avgDailySpend = await repo.getAverageDailySpend();
     final highestCategory = await repo.getHighestCategory();
@@ -42,7 +47,9 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     if (mounted) {
       setState(() {
         _categorySpending = categorySpending;
+        _dailySpending = dailySpending;
         _weeklySpending = weeklySpending;
+        _monthlySpending = monthlySpending;
         _totalSpent = totalSpent;
         _avgDailySpend = avgDailySpend;
         _highestCategory = highestCategory;
@@ -66,18 +73,24 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       colors.chartCyan,
       colors.chartPink,
       colors.chartOrange,
+      colors.primary,
+      colors.secondary,
     ];
 
     switch (category.toLowerCase()) {
-      case 'housing':
-        return colors.chartPurple;
       case 'food':
         return colors.chartCyan;
+      case 'bills':
+        return colors.chartOrange;
       case 'transport':
-        return colors.chartCyan;
+        return colors.chartPurple;
       case 'shop':
       case 'shopping':
         return colors.chartPink;
+      case 'health':
+        return colors.primary;
+      case 'housing':
+        return colors.secondary;
       default:
         return categoryColors[index % categoryColors.length];
     }
@@ -214,7 +227,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                     // Weekly Trends Card
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildWeeklyTrendsCard(colors),
+                      child: _buildTrendsCard(colors),
                     ),
 
                     const SizedBox(height: 20),
@@ -479,10 +492,35 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildWeeklyTrendsCard(DailyDashColorScheme colors) {
-    final maxValue = _weeklySpending.values.isEmpty
+  Widget _buildTrendsCard(DailyDashColorScheme colors) {
+    Map<String, double> spendingData;
+    String title;
+    String lastLabel;
+
+    switch (_selectedPeriod) {
+      case 'Daily':
+        spendingData = _dailySpending;
+        title = 'DAILY TRENDS';
+        break;
+      case 'Weekly':
+        spendingData = _weeklySpending;
+        title = 'WEEKLY TRENDS';
+        break;
+      case 'Monthly':
+        spendingData = _monthlySpending;
+        title = 'MONTHLY TRENDS';
+        break;
+      default:
+        spendingData = _dailySpending;
+        title = 'DAILY TRENDS';
+    }
+
+    final maxValue = spendingData.values.isEmpty
         ? 1.0
-        : _weeklySpending.values.reduce((a, b) => a > b ? a : b);
+        : spendingData.values.reduce((a, b) => a > b ? a : b);
+
+    final entries = spendingData.entries.toList();
+    lastLabel = entries.isNotEmpty ? entries.last.key : '';
 
     return Container(
       width: double.infinity,
@@ -498,7 +536,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'WEEKLY TRENDS',
+                title,
                 style: TextStyle(
                   color: colors.onSurfaceDim,
                   fontSize: 11,
@@ -506,32 +544,35 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                   letterSpacing: 1.5,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Last 5 Weeks',
-                      style: TextStyle(
-                        color: colors.onSurfaceVariant,
-                        fontSize: 12,
+              GestureDetector(
+                onTap: _showPeriodPicker,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _selectedPeriod,
+                        style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.keyboard_arrow_down,
-                      color: colors.onSurfaceDim,
-                      size: 16,
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.keyboard_arrow_down,
+                        color: colors.onSurfaceDim,
+                        size: 16,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -542,54 +583,169 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: _weeklySpending.entries.map((entry) {
-                final isCurrentWeek = entry.key == 'W5';
+              children: entries.map((entry) {
+                final isLast = entry.key == lastLabel;
                 final barHeight = maxValue > 0
                     ? (entry.value / maxValue * 120).clamp(8.0, 120.0)
                     : 8.0;
 
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Container(
-                      width: 32,
-                      height: barHeight,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: isCurrentWeek
-                              ? [
-                                  colors.secondary,
-                                  colors.secondary.withValues(alpha: 0.6),
-                                ]
-                              : [
-                                  colors.secondary.withValues(alpha: 0.5),
-                                  colors.secondary.withValues(alpha: 0.3),
-                                ],
+                return Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        width: _selectedPeriod == 'Monthly' ? 18 : 28,
+                        height: barHeight,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: isLast
+                                ? [
+                                    colors.secondary,
+                                    colors.secondary.withValues(alpha: 0.6),
+                                  ]
+                                : [
+                                    colors.secondary.withValues(alpha: 0.5),
+                                    colors.secondary.withValues(alpha: 0.3),
+                                  ],
+                          ),
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      entry.key,
-                      style: TextStyle(
-                        color: isCurrentWeek
-                            ? colors.secondary
-                            : colors.onSurfaceDim,
-                        fontSize: 12,
-                        fontWeight: isCurrentWeek
-                            ? FontWeight.w700
-                            : FontWeight.w500,
+                      const SizedBox(height: 8),
+                      Text(
+                        entry.key,
+                        style: TextStyle(
+                          color: isLast
+                              ? colors.secondary
+                              : colors.onSurfaceDim,
+                          fontSize: _selectedPeriod == 'Monthly' ? 9 : 11,
+                          fontWeight: isLast
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 );
               }).toList(),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showPeriodPicker() {
+    final colors = context.colors;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surfaceContainerLow,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colors.onSurfaceDim,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Select Period',
+                style: TextStyle(
+                  color: colors.onSurface,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildPeriodOption('Daily', 'Last 7 days', Icons.today, colors),
+              const SizedBox(height: 8),
+              _buildPeriodOption('Weekly', 'Last 5 weeks', Icons.date_range, colors),
+              const SizedBox(height: 8),
+              _buildPeriodOption('Monthly', 'Last 12 months', Icons.calendar_month, colors),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPeriodOption(String period, String subtitle, IconData icon, DailyDashColorScheme colors) {
+    final isSelected = _selectedPeriod == period;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _selectedPeriod = period);
+        Navigator.pop(context);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? colors.primary.withValues(alpha: 0.15)
+              : colors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(16),
+          border: isSelected
+              ? Border.all(color: colors.primary, width: 2)
+              : null,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? colors.primary.withValues(alpha: 0.2)
+                    : colors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? colors.primary : colors.onSurfaceDim,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    period,
+                    style: TextStyle(
+                      color: isSelected ? colors.primary : colors.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: colors.onSurfaceDim,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: colors.primary, size: 22),
+          ],
+        ),
       ),
     );
   }

@@ -16,7 +16,7 @@ class AddExpenseScreen extends StatefulWidget {
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
   String _amount = '0';
   String _selectedCategory = 'Food';
-  String _selectedPaymentMode = 'Credit Card';
+  String _selectedPaymentMode = 'UPI';
   DateTime _selectedDateTime = DateTime.now();
   final _descriptionController = TextEditingController();
 
@@ -44,9 +44,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   ];
 
   final List<Map<String, dynamic>> _paymentModes = [
+    {'name': 'UPI', 'icon': Icons.qr_code},
     {'name': 'Credit Card', 'icon': Icons.credit_card},
     {'name': 'Debit Card', 'icon': Icons.credit_card_outlined},
-    {'name': 'UPI', 'icon': Icons.qr_code},
     {'name': 'Cash', 'icon': Icons.money},
     {'name': 'Bank Transfer', 'icon': Icons.account_balance},
   ];
@@ -370,6 +370,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
     return Scaffold(
       backgroundColor: colors.background,
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Column(
           children: [

@@ -214,6 +214,54 @@ class InMemoryRepository implements DataRepository {
   }
 
   @override
+  Future<Map<String, double>> getDailySpending() async {
+    seedData();
+    final now = DateTime.now();
+    final map = <String, double>{};
+    final dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    for (int i = 6; i >= 0; i--) {
+      final day = now.subtract(Duration(days: i));
+      final start = DateTime(day.year, day.month, day.day);
+      final end = DateTime(day.year, day.month, day.day, 23, 59, 59);
+      final total = _expenses
+          .where(
+            (e) =>
+                !e.isIncome &&
+                e.dateTime.isAfter(start.subtract(const Duration(seconds: 1))) &&
+                e.dateTime.isBefore(end.add(const Duration(seconds: 1))),
+          )
+          .fold<double>(0, (sum, e) => sum + e.amount);
+      map[dayNames[day.weekday - 1]] = total;
+    }
+    return map;
+  }
+
+  @override
+  Future<Map<String, double>> getMonthlySpending() async {
+    seedData();
+    final now = DateTime.now();
+    final map = <String, double>{};
+    final monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    for (int i = 11; i >= 0; i--) {
+      final month = DateTime(now.year, now.month - i, 1);
+      final start = DateTime(month.year, month.month, 1);
+      final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+      final total = _expenses
+          .where(
+            (e) =>
+                !e.isIncome &&
+                e.dateTime.isAfter(start.subtract(const Duration(seconds: 1))) &&
+                e.dateTime.isBefore(end.add(const Duration(seconds: 1))),
+          )
+          .fold<double>(0, (sum, e) => sum + e.amount);
+      map[monthNames[month.month - 1]] = total;
+    }
+    return map;
+  }
+
+  @override
   Future<double> getAverageDailySpend() async {
     seedData();
     final now = DateTime.now();
