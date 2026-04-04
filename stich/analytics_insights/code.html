@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumina Ledger - Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#9027c4",
+                        "on-primary-container": "#3c0057",
+                        "tertiary": "#91dfff",
+                        "tertiary-container": "#64d4fd",
+                        "on-secondary-container": "#f1f9ff",
+                        "surface-container-low": "#131313",
+                        "surface-container-high": "#1f1f1f",
+                        "surface-container-highest": "#262626",
+                        "surface-bright": "#2c2c2c",
+                        "on-primary-fixed-variant": "#4a006b",
+                        "primary-container": "#d37bff",
+                        "surface": "#0e0e0e",
+                        "primary-fixed-dim": "#cb66fe",
+                        "outline-variant": "#484848",
+                        "on-tertiary": "#005065",
+                        "on-background": "#ffffff",
+                        "error-container": "#a70138",
+                        "error-dim": "#d73357",
+                        "on-surface": "#ffffff",
+                        "on-tertiary-fixed-variant": "#005066",
+                        "on-secondary-fixed": "#00394c",
+                        "secondary": "#04c4fe",
+                        "background": "#0e0e0e",
+                        "surface-dim": "#0e0e0e",
+                        "on-error": "#490013",
+                        "on-secondary": "#00394d",
+                        "inverse-on-surface": "#555555",
+                        "primary-dim": "#d277ff",
+                        "on-secondary-fixed-variant": "#005773",
+                        "error": "#ff6e84",
+                        "on-tertiary-container": "#00465a",
+                        "on-primary-fixed": "#000000",
+                        "tertiary-dim": "#53c6ee",
+                        "surface-variant": "#262626",
+                        "surface-tint": "#db90ff",
+                        "primary-fixed": "#d37bff",
+                        "secondary-fixed": "#93dbff",
+                        "surface-container": "#191919",
+                        "inverse-surface": "#f9f9f9",
+                        "on-primary": "#4e0070",
+                        "surface-container-lowest": "#000000",
+                        "primary": "#db90ff",
+                        "tertiary-fixed": "#64d4fd",
+                        "on-tertiary-fixed": "#00313f",
+                        "on-error-container": "#ffb2b9",
+                        "tertiary-fixed-dim": "#53c6ee",
+                        "on-surface-variant": "#ababab",
+                        "secondary-dim": "#00b6ec",
+                        "secondary-container": "#006686",
+                        "secondary-fixed-dim": "#65d0ff",
+                        "outline": "#757575"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .donut-gradient {
+            background: conic-gradient(
+                from 0deg,
+                #db90ff 0% 35%,
+                #04c4fe 35% 60%,
+                #53c6ee 60% 80%,
+                #ff6e84 80% 100%
+            );
+        }
+        .glass-panel {
+            background: rgba(38, 38, 38, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 bg-neutral-950/40 backdrop-blur-xl flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary/30">
+<img alt="User Profile" data-alt="Professional male headshot with clean lighting and neutral background, studio setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAC_WlUVh5NU96StDR9ezmc9prXX72E3rnbijXdIkZfVleFEbLkiCtriyOVnlrOMCOS61RL5evJNCMLZs9M6rr-LhaV7xp46VT6_Swf8-4N0qajOiB92MgLGOUZRycASDj_ws8NwpjTN5MA7E2hM-OgVQ9_Vhkk5y09PGWYLmK9ZACKTf-X_VHXIEQ2q_XZx-4kLyuabk08omslRqhndZCc1FEvSE74ISkcf5XwHYvOmNxfrZBQs3zeBxVXy4_SRiihb3o1UXot1Yk"/>
+</div>
+<span class="text-xl font-bold bg-gradient-to-br from-purple-300 to-purple-500 bg-clip-text text-transparent font-plus-jakarta-sans tracking-tight">Lumina Ledger</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-purple-400 hover:opacity-80 transition-opacity active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</nav>
+<main class="pt-20 px-6 space-y-8">
+<!-- Header Section -->
+<header>
+<p class="text-on-surface-variant text-[10px] uppercase tracking-[0.2em] font-bold mb-1">Financial Insights</p>
+<h1 class="text-3xl font-extrabold tracking-tight">Analytics</h1>
+</header>
+<!-- Donut Chart Section -->
+<section class="relative">
+<div class="glass-panel p-8 rounded-xl border border-white/5 relative overflow-hidden">
+<div class="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 blur-[80px]"></div>
+<h2 class="text-on-surface-variant text-xs font-bold uppercase tracking-widest mb-8">Category Distribution</h2>
+<div class="flex flex-col items-center">
+<div class="relative w-56 h-56 flex items-center justify-center">
+<!-- Donut Ring Simulation -->
+<div class="absolute inset-0 rounded-full donut-gradient"></div>
+<!-- Inner Circle for Donut Effect -->
+<div class="absolute w-[70%] h-[70%] bg-surface rounded-full flex flex-col items-center justify-center shadow-inner">
+<span class="text-[10px] font-medium text-on-surface-variant uppercase tracking-tighter">Total Spent</span>
+<span class="text-2xl font-black tracking-tight">$4,280</span>
+</div>
+<!-- Glowing Accents -->
+<div class="absolute inset-0 rounded-full border-[12px] border-white/5 pointer-events-none"></div>
+</div>
+<!-- Custom Legend -->
+<div class="grid grid-cols-2 gap-4 mt-10 w-full">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-primary shadow-[0_0_10px_rgba(219,144,255,0.6)]"></div>
+<div class="flex flex-col">
+<span class="text-xs font-bold">Housing</span>
+<span class="text-[10px] text-on-surface-variant">35% • $1,498</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-secondary shadow-[0_0_10px_rgba(4,196,254,0.6)]"></div>
+<div class="flex flex-col">
+<span class="text-xs font-bold">Food</span>
+<span class="text-[10px] text-on-surface-variant">25% • $1,070</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-tertiary shadow-[0_0_10px_rgba(83,198,238,0.6)]"></div>
+<div class="flex flex-col">
+<span class="text-xs font-bold">Transport</span>
+<span class="text-[10px] text-on-surface-variant">20% • $856</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-error shadow-[0_0_10px_rgba(255,110,132,0.6)]"></div>
+<div class="flex flex-col">
+<span class="text-xs font-bold">Others</span>
+<span class="text-[10px] text-on-surface-variant">20% • $856</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Summary Section: Bento Style Glass Cards -->
+<section class="grid grid-cols-2 gap-4">
+<div class="glass-panel p-5 rounded-xl border border-white/5 flex flex-col justify-between h-40">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
+<span class="material-symbols-outlined text-xl" data-icon="trending_up">trending_up</span>
+</div>
+<div>
+<p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Highest Category</p>
+<p class="text-lg font-bold">Housing</p>
+<p class="text-[10px] text-error font-medium">+$240 this month</p>
+</div>
+</div>
+<div class="glass-panel p-5 rounded-xl border border-white/5 flex flex-col justify-between h-40">
+<div class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary mb-2">
+<span class="material-symbols-outlined text-xl" data-icon="calendar_today">calendar_today</span>
+</div>
+<div>
+<p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Avg Daily Spend</p>
+<p class="text-lg font-bold">$142.60</p>
+<p class="text-[10px] text-secondary font-medium">Within budget</p>
+</div>
+</div>
+</section>
+<!-- Trends Section: Bar Chart -->
+<section class="glass-panel p-6 rounded-xl border border-white/5">
+<div class="flex justify-between items-center mb-8">
+<h2 class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Weekly Trends</h2>
+<div class="flex items-center gap-2 text-[10px] bg-white/5 px-3 py-1 rounded-full text-on-surface-variant">
+                    Last 5 Weeks <span class="material-symbols-outlined text-xs" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<div class="flex items-end justify-between h-48 gap-3 px-2">
+<!-- Bar 1 -->
+<div class="flex flex-col items-center flex-1 group">
+<div class="w-full bg-secondary/20 rounded-t-lg relative h-24 transition-all duration-300 group-hover:bg-secondary/40">
+<div class="absolute bottom-0 left-0 right-0 h-16 bg-secondary rounded-t-lg shadow-[0_0_15px_rgba(4,196,254,0.4)]"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant mt-3 font-bold">W1</span>
+</div>
+<!-- Bar 2 -->
+<div class="flex flex-col items-center flex-1 group">
+<div class="w-full bg-secondary/20 rounded-t-lg relative h-32 transition-all duration-300 group-hover:bg-secondary/40">
+<div class="absolute bottom-0 left-0 right-0 h-28 bg-secondary rounded-t-lg shadow-[0_0_15px_rgba(4,196,254,0.4)]"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant mt-3 font-bold">W2</span>
+</div>
+<!-- Bar 3 -->
+<div class="flex flex-col items-center flex-1 group">
+<div class="w-full bg-secondary/20 rounded-t-lg relative h-40 transition-all duration-300 group-hover:bg-secondary/40">
+<div class="absolute bottom-0 left-0 right-0 h-36 bg-secondary rounded-t-lg shadow-[0_0_15px_rgba(4,196,254,0.4)]"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant mt-3 font-bold">W3</span>
+</div>
+<!-- Bar 4 -->
+<div class="flex flex-col items-center flex-1 group">
+<div class="w-full bg-secondary/20 rounded-t-lg relative h-28 transition-all duration-300 group-hover:bg-secondary/40">
+<div class="absolute bottom-0 left-0 right-0 h-20 bg-secondary rounded-t-lg shadow-[0_0_15px_rgba(4,196,254,0.4)]"></div>
+</div>
+<span class="text-[10px] text-on-surface-variant mt-3 font-bold">W4</span>
+</div>
+<!-- Bar 5 (Active Week) -->
+<div class="flex flex-col items-center flex-1 group">
+<div class="w-full bg-secondary/30 rounded-t-lg relative h-44 transition-all duration-300">
+<div class="absolute bottom-0 left-0 right-0 h-40 bg-secondary rounded-t-lg shadow-[0_0_25px_rgba(4,196,254,0.6)]"></div>
+</div>
+<span class="text-[10px] text-secondary mt-3 font-black">W5</span>
+</div>
+</div>
+</section>
+<!-- Insights Banner -->
+<section class="bg-gradient-to-r from-primary/20 to-secondary/20 p-6 rounded-xl border border-white/10 flex items-center gap-4">
+<div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md">
+<span class="material-symbols-outlined text-primary" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<div class="flex-1">
+<h3 class="text-sm font-bold">Smart Insight</h3>
+<p class="text-xs text-on-surface-variant">You spent 12% less on <span class="text-on-surface">Dining Out</span> than last week. Keep it up!</p>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-0 right-0 z-50 flex justify-around items-center px-4 h-20">
+<div class="bg-neutral-900/60 backdrop-blur-2xl w-[90%] rounded-full border border-white/10 flex justify-around items-center h-16 shadow-[0_0_30px_rgba(219,144,255,0.15)] mx-auto">
+<button class="flex items-center justify-center text-neutral-500 w-12 h-12 hover:text-purple-200 transition-colors">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+</button>
+<button class="flex items-center justify-center bg-purple-500/20 text-purple-300 rounded-full w-12 h-12 shadow-[0_0_15px_rgba(219,144,255,0.4)] scale-110 duration-300 ease-out">
+<span class="material-symbols-outlined" data-icon="insights">insights</span>
+</button>
+<button class="flex items-center justify-center text-neutral-500 w-12 h-12 hover:text-purple-200 transition-colors">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</button>
+</div>
+</nav>
+</body></html>

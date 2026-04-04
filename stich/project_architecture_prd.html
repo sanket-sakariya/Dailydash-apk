@@ -1,0 +1,58 @@
+# Project Architecture: Premium Expense Tracker
+
+## 1. Project Structure (Clean Architecture)
+```text
+lib/
+├── core/
+│   ├── constants/          # Colors, Typography, Spacing
+│   ├── theme/              # App Theme (Deep Dark, Glassmorphism)
+│   └── utils/              # Haptics, Date Formatters
+├── data/
+│   ├── models/             # ExpenseModel, CategoryModel
+│   ├── repositories/       # ExpenseRepository (Hive/SQLite)
+│   └── datasources/        # Local Storage Implementation
+├── domain/
+│   ├── entities/           # Business objects
+│   └── repositories/       # Repository interfaces
+├── providers/              # State Management (Riverpod)
+│   ├── expense_provider.dart
+│   └── theme_provider.dart
+└── presentation/
+    ├── screens/
+    │   ├── home/           # Dashboard Screen
+    │   ├── add_expense/    # Add Expense Screen
+    │   ├── analytics/      # Charts & Insights
+    │   └── detail/         # Expense Details
+    └── widgets/            # Custom UI Components
+        ├── glass_card.dart
+        ├── transaction_tile.dart
+        └── custom_numpad.dart
+```
+
+## 2. Data Model (Expense)
+```dart
+class Expense {
+  final String id;
+  final double amount;
+  final DateTime dateTime;
+  final String description;
+  final String category;
+  final String paymentMode;
+
+  Expense({
+    required this.id,
+    required this.amount,
+    required this.dateTime,
+    required this.description,
+    required this.category,
+    required this.paymentMode,
+  });
+
+  // To/From JSON for Hive/Local Storage
+}
+```
+
+## 3. Design Principles
+- **Glassmorphism:** Using `BackdropFilter` with low opacity white/grey overlays.
+- **Neon Accents:** Electric Purple (#BB86FC) and Cyan (#03DAC6) for interactive elements.
+- **Micro-interactions:** Scale transitions on tap and spring physics for lists.

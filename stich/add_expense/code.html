@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumina Ledger - Add Expense</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-primary": "#9027c4",
+                    "on-primary-container": "#3c0057",
+                    "tertiary": "#91dfff",
+                    "tertiary-container": "#64d4fd",
+                    "on-secondary-container": "#f1f9ff",
+                    "surface-container-low": "#131313",
+                    "surface-container-high": "#1f1f1f",
+                    "surface-container-highest": "#262626",
+                    "surface-bright": "#2c2c2c",
+                    "on-primary-fixed-variant": "#4a006b",
+                    "primary-container": "#d37bff",
+                    "surface": "#0e0e0e",
+                    "primary-fixed-dim": "#cb66fe",
+                    "outline-variant": "#484848",
+                    "on-tertiary": "#005065",
+                    "on-background": "#ffffff",
+                    "error-container": "#a70138",
+                    "error-dim": "#d73357",
+                    "on-surface": "#ffffff",
+                    "on-tertiary-fixed-variant": "#005066",
+                    "on-secondary-fixed": "#00394c",
+                    "secondary": "#04c4fe",
+                    "background": "#0e0e0e",
+                    "surface-dim": "#0e0e0e",
+                    "on-error": "#490013",
+                    "on-secondary": "#00394d",
+                    "inverse-on-surface": "#555555",
+                    "primary-dim": "#d277ff",
+                    "on-secondary-fixed-variant": "#005773",
+                    "error": "#ff6e84",
+                    "on-tertiary-container": "#00465a",
+                    "on-primary-fixed": "#000000",
+                    "tertiary-dim": "#53c6ee",
+                    "surface-variant": "#262626",
+                    "surface-tint": "#db90ff",
+                    "primary-fixed": "#d37bff",
+                    "secondary-fixed": "#93dbff",
+                    "surface-container": "#191919",
+                    "inverse-surface": "#f9f9f9",
+                    "on-primary": "#4e0070",
+                    "surface-container-lowest": "#000000",
+                    "primary": "#db90ff",
+                    "tertiary-fixed": "#64d4fd",
+                    "on-tertiary-fixed": "#00313f",
+                    "on-error-container": "#ffb2b9",
+                    "tertiary-fixed-dim": "#53c6ee",
+                    "on-surface-variant": "#ababab",
+                    "secondary-dim": "#00b6ec",
+                    "secondary-container": "#006686",
+                    "secondary-fixed-dim": "#65d0ff",
+                    "outline": "#757575"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Plus Jakarta Sans"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .bg-glass {
+            backdrop-filter: blur(20px);
+            background: rgba(38, 38, 38, 0.4);
+        }
+        .neon-glow-primary {
+            box-shadow: 0 0 20px rgba(219, 144, 255, 0.3);
+        }
+        .neon-glow-secondary {
+            box-shadow: 0 0 15px rgba(4, 196, 254, 0.2);
+        }
+        input:focus { outline: none; }
+        /* Hide scrollbar for category grid if it overflows */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-32">
+<!-- Top Navigation Shell (TopAppBar) -->
+<header class="fixed top-0 w-full z-50 bg-neutral-950/40 backdrop-blur-xl flex justify-between items-center px-6 h-16">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container">
+<img alt="User Profile" data-alt="close-up portrait of a stylish young professional with glasses and a soft smile in minimalist digital art style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAy2Ilgg3vQVjj4yLQKs0rAb-ha_9D8vW0HqoWBioKyBw-28g9Ta45Zx6VskBURB-XEqGpcFk3J8PeO3_g9qcY0fdwTW4SfwMu5sdSnQyZ9attnmOiEIsf7r1ZkpYDnzZusEzZfT2VgTUx5crLivnXWIEJc4n4n-ESicXmpa5gRwNDS3pFc-rZNCeV7MT052raQ_EesqpLzq9WMAlR-JijmbXXjvO-1wKbxXwFwfFbfeJPAoH89AAf76dik4j1ZA-AeoKyotjqdbGI"/>
+</div>
+<span class="text-xl font-bold bg-gradient-to-br from-purple-300 to-purple-500 bg-clip-text text-transparent font-plus-jakarta-sans tracking-tight">Lumina Ledger</span>
+</div>
+<button class="text-neutral-400 hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 px-6 max-w-md mx-auto">
+<!-- Close/Back Action (Transactional Focus) -->
+<div class="flex items-center justify-between mb-8">
+<h1 class="text-2xl font-bold tracking-tight">Add Expense</h1>
+<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<!-- Amount Input Section -->
+<section class="mb-10 text-center">
+<p class="text-label-sm text-on-surface-variant mb-2 uppercase tracking-[0.2em] font-medium text-[10px]">Enter Amount</p>
+<div class="relative inline-flex items-baseline justify-center gap-2">
+<span class="text-2xl font-bold text-primary">₹</span>
+<span class="text-[4rem] font-extrabold leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 drop-shadow-[0_0_15px_rgba(219,144,255,0.4)]">
+                    1,250
+                </span>
+<span class="w-1 h-14 bg-primary animate-pulse ml-1 rounded-full"></span>
+</div>
+</section>
+<!-- Forms & Fields (Bento Style Cards) -->
+<div class="space-y-6">
+<!-- Category Grid -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Category</h2>
+<span class="text-xs text-primary font-medium">See All</span>
+</div>
+<!-- Updated grid with 5 columns for mobile portrait focus, or using flex-wrap/smaller icons -->
+<div class="grid grid-cols-5 gap-2">
+<div class="flex flex-col items-center gap-2 py-3 px-1 rounded-lg bg-primary-container/10 border border-primary/20 neon-glow-primary">
+<div class="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-lg" data-icon="restaurant">restaurant</span>
+</div>
+<span class="text-[8px] font-semibold text-primary truncate w-full text-center">Food</span>
+</div>
+<div class="flex flex-col items-center gap-2 py-3 px-1 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="w-9 h-9 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400">
+<span class="material-symbols-outlined text-lg" data-icon="bolt">bolt</span>
+</div>
+<span class="text-[8px] font-semibold text-on-surface-variant truncate w-full text-center">Bills</span>
+</div>
+<div class="flex flex-col items-center gap-2 py-3 px-1 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="w-9 h-9 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400">
+<span class="material-symbols-outlined text-lg" data-icon="directions_car">directions_car</span>
+</div>
+<span class="text-[8px] font-semibold text-on-surface-variant truncate w-full text-center">Transport</span>
+</div>
+<div class="flex flex-col items-center gap-2 py-3 px-1 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="w-9 h-9 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400">
+<span class="material-symbols-outlined text-lg" data-icon="shopping_bag">shopping_bag</span>
+</div>
+<span class="text-[8px] font-semibold text-on-surface-variant truncate w-full text-center">Shop</span>
+</div>
+<div class="flex flex-col items-center gap-2 py-3 px-1 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors">
+<div class="w-9 h-9 rounded-full bg-neutral-800 flex items-center justify-center text-neutral-400">
+<span class="material-symbols-outlined text-lg" data-icon="medical_services">medical_services</span>
+</div>
+<span class="text-[8px] font-semibold text-on-surface-variant truncate w-full text-center">Health</span>
+</div>
+</div>
+</section>
+<!-- Mode & Details -->
+<section class="grid grid-cols-2 gap-4">
+<div class="p-5 rounded-lg bg-surface-container-low flex flex-col gap-3">
+<label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Payment Mode</label>
+<div class="flex items-center gap-2 text-secondary font-semibold">
+<span class="material-symbols-outlined text-xl" data-icon="credit_card">credit_card</span>
+<span class="text-sm">Credit Card</span>
+</div>
+</div>
+<div class="p-5 rounded-lg bg-surface-container-low flex flex-col gap-3">
+<label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Date &amp; Time</label>
+<div class="flex items-center gap-2 text-on-surface font-semibold">
+<span class="material-symbols-outlined text-xl text-neutral-400" data-icon="calendar_today">calendar_today</span>
+<span class="text-sm">Today, 14:20</span>
+</div>
+</div>
+</section>
+<!-- Description -->
+<section class="p-5 rounded-lg bg-surface-container-low">
+<label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3 block">Description</label>
+<input class="w-full bg-transparent border-none p-0 text-on-surface placeholder:text-neutral-600 font-medium" placeholder="What was this for?" type="text"/>
+</section>
+<!-- Custom Numpad -->
+<section class="grid grid-cols-3 gap-2 mt-4">
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">1</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">2</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">3</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">4</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">5</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">6</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">7</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">8</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">9</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">.</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">0</button>
+<button class="h-16 rounded-lg bg-surface-container-highest/30 flex items-center justify-center text-xl font-bold hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined" data-icon="backspace">backspace</span>
+</button>
+</section>
+</div>
+</main>
+<!-- Save Button (Large Floating Primary Action) -->
+<footer class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background via-background/95 to-transparent">
+<button class="w-full h-16 rounded-xl bg-gradient-to-br from-primary to-primary-container text-on-primary font-bold text-lg flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(219,144,255,0.4)] active:scale-95 transition-transform">
+<span>Confirm Transaction</span>
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+</button>
+</footer>
+<!-- BottomNavBar (Suppressed due to Transactional Focus and User request to avoid wallet-related navigation) -->
+</body></html>
