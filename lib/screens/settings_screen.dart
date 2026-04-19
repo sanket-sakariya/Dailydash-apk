@@ -16,6 +16,8 @@ import '../main.dart'
         profileImageNotifier,
         darkModeNotifier,
         repo;
+import '../services/auth_service.dart';
+import '../services/sync_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -60,6 +62,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _onThemeChange() {
     setState(() {});
+  }
+
+  Future<void> _showLogoutConfirmation() async {
+    final colors = context.colors;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: colors.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Sign Out',
+          style: TextStyle(
+            color: colors.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to sign out? All local data will be cleared.',
+          style: TextStyle(color: colors.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: TextStyle(color: colors.onSurfaceDim)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Sign Out', style: TextStyle(color: colors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await AuthService.instance.signOut();
+    }
   }
 
   void _showCurrencyPicker() {
@@ -546,10 +584,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Select time period for expense report',
-                  style: TextStyle(
-                    color: colors.onSurfaceDim,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: colors.onSurfaceDim, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
                 _buildDownloadOption(
@@ -570,45 +605,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     DateTime(DateTime.now().year, DateTime.now().month - 1),
                   ),
                   colors: colors,
-                onTap: () {
-                  Navigator.pop(context);
-                  _downloadReport('last_month');
-                },
-              ),
-              const SizedBox(height: 8),
-              _buildDownloadOption(
-                icon: Icons.calendar_month,
-                title: 'Last Year',
-                subtitle: '${DateTime.now().year - 1}',
-                colors: colors,
-                onTap: () {
-                  Navigator.pop(context);
-                  _downloadReport('last_year');
-                },
-              ),
-              const SizedBox(height: 8),
-              _buildDownloadOption(
-                icon: Icons.date_range,
-                title: 'Custom Date',
-                subtitle: 'Select date range',
-                colors: colors,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showCustomDatePicker();
-                },
-              ),
-              const SizedBox(height: 8),
-              _buildDownloadOption(
-                icon: Icons.all_inclusive,
-                title: 'All Time',
-                subtitle: 'Complete expense history',
-                colors: colors,
-                onTap: () {
-                  Navigator.pop(context);
-                  _downloadReport('all_time');
-                },
-              ),
-              const SizedBox(height: 16),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _downloadReport('last_month');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _buildDownloadOption(
+                  icon: Icons.calendar_month,
+                  title: 'Last Year',
+                  subtitle: '${DateTime.now().year - 1}',
+                  colors: colors,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _downloadReport('last_year');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _buildDownloadOption(
+                  icon: Icons.date_range,
+                  title: 'Custom Date',
+                  subtitle: 'Select date range',
+                  colors: colors,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showCustomDatePicker();
+                  },
+                ),
+                const SizedBox(height: 8),
+                _buildDownloadOption(
+                  icon: Icons.all_inclusive,
+                  title: 'All Time',
+                  subtitle: 'Complete expense history',
+                  colors: colors,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _downloadReport('all_time');
+                  },
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -658,10 +693,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      color: colors.onSurfaceDim,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: colors.onSurfaceDim, fontSize: 12),
                   ),
                 ],
               ),
@@ -776,7 +808,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         case 'last_month':
           start = DateTime(now.year, now.month - 1, 1);
           end = DateTime(now.year, now.month, 0, 23, 59, 59);
-          periodName = DateFormat('MMMM_yyyy').format(DateTime(now.year, now.month - 1));
+          periodName = DateFormat(
+            'MMMM_yyyy',
+          ).format(DateTime(now.year, now.month - 1));
           break;
         case 'last_year':
           start = DateTime(now.year - 1, 1, 1);
@@ -786,7 +820,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         case 'custom':
           start = startDate!;
           end = DateTime(endDate!.year, endDate.month, endDate.day, 23, 59, 59);
-          periodName = '${DateFormat('dd_MMM').format(start)}_to_${DateFormat('dd_MMM_yyyy').format(end)}';
+          periodName =
+              '${DateFormat('dd_MMM').format(start)}_to_${DateFormat('dd_MMM_yyyy').format(end)}';
           break;
         case 'all_time':
         default:
@@ -800,9 +835,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final expenses = await repo.getExpensesByDateRange(start, end);
 
       // Load font that supports Unicode currency symbols
-      final fontData = await rootBundle.load('assets/fonts/NotoSans-Regular.ttf');
+      final fontData = await rootBundle.load(
+        'assets/fonts/NotoSans-Regular.ttf',
+      );
       final ttf = pw.Font.ttf(fontData);
-      final boldFontData = await rootBundle.load('assets/fonts/NotoSans-Bold.ttf');
+      final boldFontData = await rootBundle.load(
+        'assets/fonts/NotoSans-Bold.ttf',
+      );
       final ttfBold = pw.Font.ttf(boldFontData);
 
       // Get currency symbol for PDF
@@ -812,10 +851,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final pdf = pw.Document();
 
       // Define text styles with custom font
-      final headerStyle = pw.TextStyle(font: ttfBold, fontSize: 24, color: PdfColors.white);
-      final subHeaderStyle = pw.TextStyle(font: ttf, fontSize: 14, color: PdfColors.white);
+      final headerStyle = pw.TextStyle(
+        font: ttfBold,
+        fontSize: 24,
+        color: PdfColors.white,
+      );
+      final subHeaderStyle = pw.TextStyle(
+        font: ttf,
+        fontSize: 14,
+        color: PdfColors.white,
+      );
       final bodyStyle = pw.TextStyle(font: ttf, fontSize: 12);
-      final smallStyle = pw.TextStyle(font: ttf, fontSize: 10, color: PdfColors.grey700);
+      final smallStyle = pw.TextStyle(
+        font: ttf,
+        fontSize: 10,
+        color: PdfColors.grey700,
+      );
       final boldStyle = pw.TextStyle(font: ttfBold, fontSize: 12);
 
       // Calculate totals
@@ -825,7 +876,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       for (final e in expenses) {
         if (!e.isIncome) {
           totalExpense += e.amount;
-          categoryTotals[e.category] = (categoryTotals[e.category] ?? 0) + e.amount;
+          categoryTotals[e.category] =
+              (categoryTotals[e.category] ?? 0) + e.amount;
         }
       }
 
@@ -855,9 +907,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text(usernameNotifier.value, style: pw.TextStyle(font: ttfBold, fontSize: 14, color: PdfColors.white)),
+                      pw.Text(
+                        usernameNotifier.value,
+                        style: pw.TextStyle(
+                          font: ttfBold,
+                          fontSize: 14,
+                          color: PdfColors.white,
+                        ),
+                      ),
                       pw.SizedBox(height: 4),
-                      pw.Text('Generated: ${DateFormat('dd MMM yyyy').format(DateTime.now())}', style: pw.TextStyle(font: ttf, fontSize: 10, color: PdfColors.white)),
+                      pw.Text(
+                        'Generated: ${DateFormat('dd MMM yyyy').format(DateTime.now())}',
+                        style: pw.TextStyle(
+                          font: ttf,
+                          fontSize: 10,
+                          color: PdfColors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -906,10 +972,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.center,
                 children: [
-                  pw.Text('Total Expenses: ', style: pw.TextStyle(font: ttf, fontSize: 14, color: PdfColors.red800)),
+                  pw.Text(
+                    'Total Expenses: ',
+                    style: pw.TextStyle(
+                      font: ttf,
+                      fontSize: 14,
+                      color: PdfColors.red800,
+                    ),
+                  ),
                   pw.Text(
                     '$currencySymbol${NumberFormat('#,##0.00').format(totalExpense)}',
-                    style: pw.TextStyle(font: ttfBold, fontSize: 18, color: PdfColors.red800),
+                    style: pw.TextStyle(
+                      font: ttfBold,
+                      fontSize: 18,
+                      color: PdfColors.red800,
+                    ),
                   ),
                 ],
               ),
@@ -918,33 +995,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // Category Breakdown
             if (categoryTotals.isNotEmpty) ...[
-              pw.Text('Category Breakdown', style: pw.TextStyle(font: ttfBold, fontSize: 14)),
+              pw.Text(
+                'Category Breakdown',
+                style: pw.TextStyle(font: ttfBold, fontSize: 14),
+              ),
               pw.SizedBox(height: 8),
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.grey300),
                 children: [
                   pw.TableRow(
-                    decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                    decoration: const pw.BoxDecoration(
+                      color: PdfColors.grey200,
+                    ),
                     children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Category', style: boldStyle)),
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Amount', style: boldStyle)),
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Percentage', style: boldStyle)),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text('Category', style: boldStyle),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text('Amount', style: boldStyle),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text('Percentage', style: boldStyle),
+                      ),
                     ],
                   ),
-                  ...categoryTotals.entries.map((entry) => pw.TableRow(
-                    children: [
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(entry.key, style: bodyStyle)),
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('$currencySymbol${NumberFormat('#,##0.00').format(entry.value)}', style: bodyStyle)),
-                      pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('${(entry.value / totalExpense * 100).toStringAsFixed(1)}%', style: bodyStyle)),
-                    ],
-                  )),
+                  ...categoryTotals.entries.map(
+                    (entry) => pw.TableRow(
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(entry.key, style: bodyStyle),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(
+                            '$currencySymbol${NumberFormat('#,##0.00').format(entry.value)}',
+                            style: bodyStyle,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text(
+                            '${(entry.value / totalExpense * 100).toStringAsFixed(1)}%',
+                            style: bodyStyle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
               pw.SizedBox(height: 20),
             ],
 
             // Transactions Table
-            pw.Text('Transaction Details', style: pw.TextStyle(font: ttfBold, fontSize: 14)),
+            pw.Text(
+              'Transaction Details',
+              style: pw.TextStyle(font: ttfBold, fontSize: 14),
+            ),
             pw.SizedBox(height: 8),
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey300),
@@ -959,32 +1070,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                   children: [
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Date', style: pw.TextStyle(font: ttfBold, fontSize: 10))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Description', style: pw.TextStyle(font: ttfBold, fontSize: 10))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Category', style: pw.TextStyle(font: ttfBold, fontSize: 10))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Payment', style: pw.TextStyle(font: ttfBold, fontSize: 10))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('Amount', style: pw.TextStyle(font: ttfBold, fontSize: 10))),
-                  ],
-                ),
-                ...expenses.map((e) => pw.TableRow(
-                  children: [
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(DateFormat('dd/MM/yy').format(e.dateTime), style: pw.TextStyle(font: ttf, fontSize: 9))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(e.description, style: pw.TextStyle(font: ttf, fontSize: 9))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(e.category, style: pw.TextStyle(font: ttf, fontSize: 9))),
-                    pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(e.paymentMode, style: pw.TextStyle(font: ttf, fontSize: 9))),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(6),
                       child: pw.Text(
-                        '${e.isIncome ? '+' : '-'}$currencySymbol${NumberFormat('#,##0.00').format(e.amount)}',
-                        style: pw.TextStyle(
-                          font: ttf,
-                          fontSize: 9,
-                          color: e.isIncome ? PdfColors.green700 : PdfColors.red700,
-                        ),
+                        'Date',
+                        style: pw.TextStyle(font: ttfBold, fontSize: 10),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'Description',
+                        style: pw.TextStyle(font: ttfBold, fontSize: 10),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'Category',
+                        style: pw.TextStyle(font: ttfBold, fontSize: 10),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'Payment',
+                        style: pw.TextStyle(font: ttfBold, fontSize: 10),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                        'Amount',
+                        style: pw.TextStyle(font: ttfBold, fontSize: 10),
                       ),
                     ),
                   ],
-                )),
+                ),
+                ...expenses.map(
+                  (e) => pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          DateFormat('dd/MM/yy').format(e.dateTime),
+                          style: pw.TextStyle(font: ttf, fontSize: 9),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          e.description,
+                          style: pw.TextStyle(font: ttf, fontSize: 9),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          e.category,
+                          style: pw.TextStyle(font: ttf, fontSize: 9),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          e.paymentMode,
+                          style: pw.TextStyle(font: ttf, fontSize: 9),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(
+                          '${e.isIncome ? '+' : '-'}$currencySymbol${NumberFormat('#,##0.00').format(e.amount)}',
+                          style: pw.TextStyle(
+                            font: ttf,
+                            fontSize: 9,
+                            color: e.isIncome
+                                ? PdfColors.green700
+                                : PdfColors.red700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ],
@@ -1005,7 +1174,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         savePath = saveDir.path;
       } else {
         saveDir = await getDownloadsDirectory();
-        savePath = saveDir?.path ?? (await getApplicationDocumentsDirectory()).path;
+        savePath =
+            saveDir?.path ?? (await getApplicationDocumentsDirectory()).path;
       }
 
       if (saveDir == null && savePath.isEmpty) {
@@ -1015,7 +1185,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       // Save PDF
-      final fileName = 'DailyDash_${periodName}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final fileName =
+          'DailyDash_${periodName}_${DateTime.now().millisecondsSinceEpoch}.pdf';
       final file = File('$savePath/$fileName');
       await file.writeAsBytes(await pdf.save());
 
@@ -1062,7 +1233,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: colors.secondary.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.check_circle, color: colors.secondary, size: 40),
+                child: Icon(
+                  Icons.check_circle,
+                  color: colors.secondary,
+                  size: 40,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -1076,10 +1251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 8),
               Text(
                 'Saved to Downloads folder',
-                style: TextStyle(
-                  color: colors.onSurfaceDim,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: colors.onSurfaceDim, fontSize: 14),
               ),
               const SizedBox(height: 24),
               Row(
@@ -1344,6 +1516,231 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: 'Export expenses as PDF',
                       colors: colors,
                       onTap: _showDownloadOptions,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 28),
+
+              // Account Section
+              _buildSectionHeader('ACCOUNT', colors),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    // User email display
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: colors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              Icons.email_outlined,
+                              color: colors.primary,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Email',
+                                  style: TextStyle(
+                                    color: colors.onSurface,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  AuthService.instance.currentUserEmail ??
+                                      'Not signed in',
+                                  style: TextStyle(
+                                    color: colors.onSurfaceDim,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Sync status
+                    GestureDetector(
+                      onTap: () => SyncService.instance.triggerSync(),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: colors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: colors.secondary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: ValueListenableBuilder<SyncStatus>(
+                                valueListenable:
+                                    SyncService.instance.syncStatusNotifier,
+                                builder: (context, status, _) {
+                                  IconData icon;
+                                  Color color;
+                                  switch (status) {
+                                    case SyncStatus.synced:
+                                      icon = Icons.cloud_done;
+                                      color = colors.success;
+                                      break;
+                                    case SyncStatus.syncing:
+                                      icon = Icons.cloud_sync;
+                                      color = colors.primary;
+                                      break;
+                                    case SyncStatus.offline:
+                                      icon = Icons.cloud_off;
+                                      color = colors.chartOrange;
+                                      break;
+                                    case SyncStatus.error:
+                                      icon = Icons.cloud_off;
+                                      color = colors.error;
+                                      break;
+                                    case SyncStatus.idle:
+                                      icon = Icons.cloud_done;
+                                      color = colors.secondary;
+                                      break;
+                                  }
+                                  return Icon(icon, color: color, size: 22);
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Sync Status',
+                                    style: TextStyle(
+                                      color: colors.onSurface,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  ValueListenableBuilder<SyncStatus>(
+                                    valueListenable:
+                                        SyncService.instance.syncStatusNotifier,
+                                    builder: (context, status, _) {
+                                      String statusText;
+                                      switch (status) {
+                                        case SyncStatus.synced:
+                                          statusText = 'All data synced';
+                                          break;
+                                        case SyncStatus.syncing:
+                                          statusText = 'Syncing...';
+                                          break;
+                                        case SyncStatus.offline:
+                                          statusText =
+                                              'Offline - changes pending';
+                                          break;
+                                        case SyncStatus.error:
+                                          statusText =
+                                              'Sync error - tap to retry';
+                                          break;
+                                        case SyncStatus.idle:
+                                          statusText = 'Tap to sync now';
+                                          break;
+                                      }
+                                      return Text(
+                                        statusText,
+                                        style: TextStyle(
+                                          color: colors.onSurfaceDim,
+                                          fontSize: 13,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.sync,
+                              color: colors.onSurfaceDim,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Logout button
+                    GestureDetector(
+                      onTap: _showLogoutConfirmation,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: colors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: colors.error.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(
+                                Icons.logout,
+                                color: colors.error,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Sign Out',
+                                    style: TextStyle(
+                                      color: colors.error,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Sign out and clear local data',
+                                    style: TextStyle(
+                                      color: colors.error.withValues(
+                                        alpha: 0.7,
+                                      ),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),

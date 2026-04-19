@@ -2,8 +2,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
-import '../main.dart' show repo, currencyNotifier, profileImageNotifier, navigationIndexNotifier, budgetNotifier;
+import '../main.dart'
+    show
+        repo,
+        currencyNotifier,
+        profileImageNotifier,
+        navigationIndexNotifier,
+        budgetNotifier;
 import '../models/expense.dart';
+import '../widgets/sync_indicator.dart';
+import '../services/sync_service.dart';
 import 'add_expense_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -37,7 +45,9 @@ class DashboardScreenState extends State<DashboardScreen> {
     final calculatedSavings = budget - totalThisMonth;
 
     // Calculate budget percentage used
-    final budgetPercentage = budget > 0 ? (totalThisMonth / budget * 100).clamp(0.0, 100.0) : 0.0;
+    final budgetPercentage = budget > 0
+        ? (totalThisMonth / budget * 100).clamp(0.0, 100.0)
+        : 0.0;
 
     if (mounted) {
       setState(() {
@@ -115,14 +125,14 @@ class DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 8),
               Text(
                 'Enter your monthly budget. Savings will be calculated as budget minus monthly spending.',
-                style: TextStyle(
-                  color: colors.onSurfaceDim,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: colors.onSurfaceDim, fontSize: 14),
               ),
               const SizedBox(height: 24),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: colors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(16),
@@ -324,7 +334,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                                       shape: BoxShape.circle,
                                       image: profileImage != null
                                           ? DecorationImage(
-                                              image: FileImage(File(profileImage)),
+                                              image: FileImage(
+                                                File(profileImage),
+                                              ),
                                               fit: BoxFit.cover,
                                             )
                                           : null,
@@ -350,13 +362,19 @@ class DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ],
                           ),
-                          GestureDetector(
-                            onTap: () => navigationIndexNotifier.value = 2,
-                            child: Icon(
-                              Icons.settings,
-                              color: colors.onSurfaceDim,
-                              size: 24,
-                            ),
+                          Row(
+                            children: [
+                              const SyncIndicator(),
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                onTap: () => navigationIndexNotifier.value = 2,
+                                child: Icon(
+                                  Icons.settings,
+                                  color: colors.onSurfaceDim,
+                                  size: 24,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -486,7 +504,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                                         ? '${_savings >= 0 ? '' : '-'}${currencyNotifier.symbol}${_formatCompact(_savings.abs())}'
                                         : '--',
                                     style: TextStyle(
-                                      color: _savings >= 0 ? colors.secondary : colors.error,
+                                      color: _savings >= 0
+                                          ? colors.secondary
+                                          : colors.error,
                                       fontSize: 24,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -494,7 +514,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                                   const SizedBox(height: 8),
                                   Text(
                                     budgetNotifier.isSet
-                                        ? (_savings >= 0 ? 'Under budget' : 'Over budget')
+                                        ? (_savings >= 0
+                                              ? 'Under budget'
+                                              : 'Over budget')
                                         : 'Set budget first',
                                     style: TextStyle(
                                       color: colors.onSurfaceDim,
@@ -519,7 +541,8 @@ class DashboardScreenState extends State<DashboardScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           'BUDGET',
@@ -543,8 +566,12 @@ class DashboardScreenState extends State<DashboardScreen> {
                                           ? '${currencyNotifier.symbol}${_formatCompact(budgetNotifier.value)}'
                                           : 'Tap to set',
                                       style: TextStyle(
-                                        color: budgetNotifier.isSet ? colors.onSurface : colors.primary,
-                                        fontSize: budgetNotifier.isSet ? 24 : 18,
+                                        color: budgetNotifier.isSet
+                                            ? colors.onSurface
+                                            : colors.primary,
+                                        fontSize: budgetNotifier.isSet
+                                            ? 24
+                                            : 18,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -675,7 +702,10 @@ class DashboardScreenState extends State<DashboardScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Delete Transaction',
-          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            color: colors.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         content: Text(
           'Are you sure you want to delete "${expense.description}"?',
@@ -694,8 +724,9 @@ class DashboardScreenState extends State<DashboardScreen> {
       ),
     );
 
-    if (confirmed == true && expense.id != null) {
-      await repo.deleteExpense(expense.id!);
+    if (confirmed == true) {
+      await repo.deleteExpense(expense.id);
+      SyncService.instance.triggerSync();
       loadData();
     }
   }
@@ -803,7 +834,9 @@ class DashboardScreenState extends State<DashboardScreen> {
                     _buildDetailRow(
                       icon: Icons.calendar_today,
                       label: 'Date',
-                      value: DateFormat('EEEE, MMM dd, yyyy').format(expense.dateTime),
+                      value: DateFormat(
+                        'EEEE, MMM dd, yyyy',
+                      ).format(expense.dateTime),
                       colors: colors,
                     ),
                     const SizedBox(height: 16),
@@ -910,13 +943,7 @@ class DashboardScreenState extends State<DashboardScreen> {
       children: [
         Icon(icon, color: colors.onSurfaceDim, size: 20),
         const SizedBox(width: 12),
-        Text(
-          label,
-          style: TextStyle(
-            color: colors.onSurfaceDim,
-            fontSize: 14,
-          ),
-        ),
+        Text(label, style: TextStyle(color: colors.onSurfaceDim, fontSize: 14)),
         const Spacer(),
         Text(
           value,
@@ -948,7 +975,13 @@ class DashboardScreenState extends State<DashboardScreen> {
           children: [
             Icon(Icons.edit, color: colors.primary, size: 24),
             const SizedBox(width: 8),
-            Text('Edit', style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+            Text(
+              'Edit',
+              style: TextStyle(
+                color: colors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -963,7 +996,13 @@ class DashboardScreenState extends State<DashboardScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text('Delete', style: TextStyle(color: colors.error, fontWeight: FontWeight.w600)),
+            Text(
+              'Delete',
+              style: TextStyle(
+                color: colors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(width: 8),
             Icon(Icons.delete, color: colors.error, size: 24),
           ],
@@ -1032,7 +1071,10 @@ class DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 2),
                     Text(
                       expense.category,
-                      style: TextStyle(color: colors.onSurfaceDim, fontSize: 13),
+                      style: TextStyle(
+                        color: colors.onSurfaceDim,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),

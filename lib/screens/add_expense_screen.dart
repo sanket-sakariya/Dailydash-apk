@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../main.dart' show repo, currencyNotifier;
 import '../models/expense.dart';
+import '../services/auth_service.dart';
+import '../services/sync_service.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   final Expense? expense; // For editing existing expense
@@ -88,6 +90,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final amount = double.tryParse(_amount.replaceAll(',', ''));
     if (amount == null || amount <= 0) return;
 
+    final userId = AuthService.instance.currentUserId ?? '';
+
     final expense = Expense(
       id: widget.expense?.id,
       amount: amount,
@@ -97,6 +101,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           : _descriptionController.text,
       category: _selectedCategory,
       paymentMode: _selectedPaymentMode,
+      userId: userId,
     );
 
     if (_isEditing) {
@@ -104,6 +109,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     } else {
       await repo.insertExpense(expense);
     }
+
+    // Trigger background sync
+    SyncService.instance.triggerSync();
 
     if (mounted) Navigator.pop(context);
   }
@@ -784,7 +792,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        _isEditing ? 'Update Transaction' : 'Confirm Transaction',
+                        _isEditing
+                            ? 'Update Transaction'
+                            : 'Confirm Transaction',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 17,

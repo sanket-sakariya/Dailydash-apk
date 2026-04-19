@@ -2,13 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:device_preview/device_preview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'theme/app_theme.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/auth/login_screen.dart';
 import 'database/data_repository.dart';
 import 'database/in_memory_repository.dart';
 import 'database/database_helper.dart';
+import 'config/supabase_config.dart';
+import 'services/auth_service.dart';
+import 'services/sync_service.dart';
 
 late final DataRepository repo;
 late final SharedPreferences prefs;
@@ -19,6 +24,12 @@ void main() async {
   // Initialize shared preferences for settings persistence
   prefs = await SharedPreferences.getInstance();
 
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    anonKey: SupabaseConfig.anonKey,
+  );
+
   // Use in-memory on web (sqflite WASM is unreliable), SQLite on native
   if (kIsWeb) {
     repo = InMemoryRepository.instance;
@@ -27,6 +38,10 @@ void main() async {
     // Pre-initialize the database to ensure it's ready
     await (repo as DatabaseHelper).database;
   }
+
+  // Initialize auth and sync services
+  AuthService.instance.initialize();
+  SyncService.instance.initialize();
 
   runApp(
     DevicePreview(enabled: false, builder: (context) => const DailyDashApp()),
@@ -174,10 +189,61 @@ class DailyDashApp extends StatelessWidget {
           builder: DevicePreview.appBuilder,
           debugShowCheckedModeBanner: false,
           title: 'DailyDash',
-          theme: isDarkMode ? DailyDashTheme.darkTheme : DailyDashTheme.lightTheme,
-          home: const MainShell(),
+          theme: isDarkMode
+              ? DailyDashTheme.darkTheme
+              : DailyDashTheme.lightTheme,
+          home: const AuthGate(),
         );
       },
+    );
+  }
+}
+
+/// Auth guard that shows login or main app based on auth state
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<AppAuthState>(
+      valueListenable: AuthService.instance.authStateNotifier,
+      builder: (context, authState, _) {
+        switch (authState) {
+          case AppAuthState.unknown:
+            return const _LoadingScreen();
+          case AppAuthState.authenticated:
+            return const MainShell();
+          case AppAuthState.unauthenticated:
+            return const LoginScreen();
+        }
+      },
+    );
+  }
+}
+
+/// Loading screen shown while checking auth state
+class _LoadingScreen extends StatelessWidget {
+  const _LoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Scaffold(
+      backgroundColor: colors.background,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.account_balance_wallet_rounded,
+              size: 80,
+              color: colors.primary,
+            ),
+            const SizedBox(height: 24),
+            CircularProgressIndicator(color: colors.primary),
+          ],
+        ),
+      ),
     );
   }
 }

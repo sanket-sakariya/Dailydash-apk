@@ -1,0 +1,216 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../main.dart' show repo;
+import 'sync_service.dart';
+
+/// Application authentication states (prefixed to avoid conflict with Supabase AuthState)
+enum AppAuthState {
+  /// Initial state, checking for existing session
+  unknown,
+
+  /// User is authenticated
+  authenticated,
+
+  /// User is not authenticated
+  unauthenticated,
+}
+
+/// Service for managing Supabase authentication
+///
+/// Uses ValueNotifier for reactive state management consistent with
+/// the app's existing architecture.
+class AuthService {
+  static final AuthService instance = AuthService._init();
+
+  final _supabase = Supabase.instance.client;
+  StreamSubscription<AuthState>? _authSubscription;
+
+  /// Current authenticated user
+  final currentUserNotifier = ValueNotifier<User?>(null);
+
+  /// Current authentication state
+  final authStateNotifier = ValueNotifier<AppAuthState>(AppAuthState.unknown);
+
+  /// Loading state for auth operations
+  final isLoadingNotifier = ValueNotifier<bool>(false);
+
+  /// Error message from last operation
+  final errorNotifier = ValueNotifier<String?>(null);
+
+  AuthService._init();
+
+  /// Get current user ID or null if not authenticated
+  String? get currentUserId => _supabase.auth.currentUser?.id;
+
+  /// Get current user email or null if not authenticated
+  String? get currentUserEmail => _supabase.auth.currentUser?.email;
+
+  /// Check if user is authenticated
+  bool get isAuthenticated => currentUserId != null;
+
+  /// Initialize the auth service and listen to auth state changes
+  void initialize() {
+    // Check for existing session
+    final session = _supabase.auth.currentSession;
+    if (session != null) {
+      currentUserNotifier.value = _supabase.auth.currentUser;
+      authStateNotifier.value = AppAuthState.authenticated;
+    } else {
+      authStateNotifier.value = AppAuthState.unauthenticated;
+    }
+
+    // Listen to auth state changes
+    _supabase.auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+      final session = data.session;
+
+      switch (event) {
+        case AuthChangeEvent.signedIn:
+        case AuthChangeEvent.tokenRefreshed:
+        case AuthChangeEvent.userUpdated:
+          currentUserNotifier.value = session?.user;
+          authStateNotifier.value = AppAuthState.authenticated;
+          _onSignedIn();
+          break;
+        case AuthChangeEvent.signedOut:
+          currentUserNotifier.value = null;
+          authStateNotifier.value = AppAuthState.unauthenticated;
+          break;
+        case AuthChangeEvent.initialSession:
+          if (session != null) {
+            currentUserNotifier.value = session.user;
+            authStateNotifier.value = AppAuthState.authenticated;
+          } else {
+            authStateNotifier.value = AppAuthState.unauthenticated;
+          }
+          break;
+        default:
+          break;
+      }
+    });
+  }
+
+  /// Called after successful sign in
+  Future<void> _onSignedIn() async {
+    final userId = currentUserId;
+    if (userId == null) return;
+
+    try {
+      // Assign any orphaned local expenses to this user
+      await repo.assignUserIdToOrphans(userId);
+
+      // Trigger a full sync to pull any existing cloud data
+      await SyncService.instance.fullSync();
+    } catch (e) {
+      debugPrint('Error during post-signin setup: $e');
+    }
+  }
+
+  /// Sign up with email and password
+  Future<AuthResponse> signUp({
+    required String email,
+    required String password,
+  }) async {
+    errorNotifier.value = null;
+    isLoadingNotifier.value = true;
+
+    try {
+      final response = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      if (response.user != null && response.session != null) {
+        currentUserNotifier.value = response.user;
+        authStateNotifier.value = AppAuthState.authenticated;
+      }
+
+      return response;
+    } on AuthException catch (e) {
+      errorNotifier.value = e.message;
+      rethrow;
+    } finally {
+      isLoadingNotifier.value = false;
+    }
+  }
+
+  /// Sign in with email and password
+  Future<AuthResponse> signIn({
+    required String email,
+    required String password,
+  }) async {
+    errorNotifier.value = null;
+    isLoadingNotifier.value = true;
+
+    try {
+      final response = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      currentUserNotifier.value = response.user;
+      authStateNotifier.value = AppAuthState.authenticated;
+
+      return response;
+    } on AuthException catch (e) {
+      errorNotifier.value = e.message;
+      rethrow;
+    } finally {
+      isLoadingNotifier.value = false;
+    }
+  }
+
+  /// Sign out and clear local data
+  ///
+  /// IMPORTANT: Clears local SQLite data BEFORE signing out
+  /// to prevent data leakage between users.
+  Future<void> signOut() async {
+    errorNotifier.value = null;
+    isLoadingNotifier.value = true;
+
+    try {
+      // CRITICAL: Clear local data first to prevent data leakage
+      await repo.clearAllData();
+
+      // Stop sync service
+      SyncService.instance.dispose();
+
+      // Sign out from Supabase
+      await _supabase.auth.signOut();
+
+      currentUserNotifier.value = null;
+      authStateNotifier.value = AppAuthState.unauthenticated;
+    } catch (e) {
+      errorNotifier.value = e.toString();
+      rethrow;
+    } finally {
+      isLoadingNotifier.value = false;
+    }
+  }
+
+  /// Send password reset email
+  Future<void> resetPassword(String email) async {
+    errorNotifier.value = null;
+    isLoadingNotifier.value = true;
+
+    try {
+      await _supabase.auth.resetPasswordForEmail(email);
+    } on AuthException catch (e) {
+      errorNotifier.value = e.message;
+      rethrow;
+    } finally {
+      isLoadingNotifier.value = false;
+    }
+  }
+
+  /// Dispose resources
+  void dispose() {
+    _authSubscription?.cancel();
+    currentUserNotifier.dispose();
+    authStateNotifier.dispose();
+    isLoadingNotifier.dispose();
+    errorNotifier.dispose();
+  }
+}
