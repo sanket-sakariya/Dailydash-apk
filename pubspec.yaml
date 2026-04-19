@@ -24,6 +24,11 @@ dependencies:
   path_provider: ^2.1.2
   open_file: ^3.5.6
 
+  # Supabase hybrid (offline-first + email/password auth) backend stack
+  supabase_flutter: ^2.5.6
+  connectivity_plus: ^6.0.3
+  uuid: ^4.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
