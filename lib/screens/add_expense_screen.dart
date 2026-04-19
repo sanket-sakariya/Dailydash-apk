@@ -388,16 +388,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               child: Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: colors.primaryContainer.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(10),
+                      color: colors.primary.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.auto_awesome,
+                      Icons.account_balance_wallet_rounded,
                       color: colors.primary,
-                      size: 18,
+                      size: 22,
                     ),
                   ),
                   const SizedBox(width: 12),

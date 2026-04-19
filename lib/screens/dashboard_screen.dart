@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
@@ -6,7 +5,6 @@ import '../main.dart'
     show
         repo,
         currencyNotifier,
-        profileImageNotifier,
         navigationIndexNotifier,
         budgetNotifier;
 import '../models/expense.dart';
@@ -320,36 +318,19 @@ class DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           Row(
                             children: [
-                              // Profile Avatar
-                              ValueListenableBuilder<String?>(
-                                valueListenable: profileImageNotifier,
-                                builder: (context, profileImage, _) {
-                                  return Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: colors.primaryContainer.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      shape: BoxShape.circle,
-                                      image: profileImage != null
-                                          ? DecorationImage(
-                                              image: FileImage(
-                                                File(profileImage),
-                                              ),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : null,
-                                    ),
-                                    child: profileImage == null
-                                        ? Icon(
-                                            Icons.person,
-                                            color: colors.primary,
-                                            size: 22,
-                                          )
-                                        : null,
-                                  );
-                                },
+                              // DailyDash Logo
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: colors.primary.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.account_balance_wallet_rounded,
+                                  color: colors.primary,
+                                  size: 22,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Text(

@@ -1,9 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
-import '../main.dart' show repo, currencyNotifier, profileImageNotifier, navigationIndexNotifier;
+import '../main.dart' show repo, currencyNotifier, navigationIndexNotifier;
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -120,34 +119,19 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                         children: [
                           Row(
                             children: [
-                              // Profile Avatar
-                              ValueListenableBuilder<String?>(
-                                valueListenable: profileImageNotifier,
-                                builder: (context, profileImage, _) {
-                                  return Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: colors.primaryContainer.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      shape: BoxShape.circle,
-                                      image: profileImage != null
-                                          ? DecorationImage(
-                                              image: FileImage(File(profileImage)),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : null,
-                                    ),
-                                    child: profileImage == null
-                                        ? Icon(
-                                            Icons.person,
-                                            color: colors.primary,
-                                            size: 22,
-                                          )
-                                        : null,
-                                  );
-                                },
+                              // DailyDash Logo
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: colors.primary.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.account_balance_wallet_rounded,
+                                  color: colors.primary,
+                                  size: 22,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Text(
@@ -673,9 +657,19 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               const SizedBox(height: 20),
               _buildPeriodOption('Daily', 'Last 7 days', Icons.today, colors),
               const SizedBox(height: 8),
-              _buildPeriodOption('Weekly', 'Last 5 weeks', Icons.date_range, colors),
+              _buildPeriodOption(
+                'Weekly',
+                'Last 5 weeks',
+                Icons.date_range,
+                colors,
+              ),
               const SizedBox(height: 8),
-              _buildPeriodOption('Monthly', 'Last 12 months', Icons.calendar_month, colors),
+              _buildPeriodOption(
+                'Monthly',
+                'Last 12 months',
+                Icons.calendar_month,
+                colors,
+              ),
               const SizedBox(height: 16),
             ],
           ),
@@ -684,7 +678,12 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildPeriodOption(String period, String subtitle, IconData icon, DailyDashColorScheme colors) {
+  Widget _buildPeriodOption(
+    String period,
+    String subtitle,
+    IconData icon,
+    DailyDashColorScheme colors,
+  ) {
     final isSelected = _selectedPeriod == period;
     return GestureDetector(
       onTap: () {
@@ -734,10 +733,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      color: colors.onSurfaceDim,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: colors.onSurfaceDim, fontSize: 12),
                   ),
                 ],
               ),
