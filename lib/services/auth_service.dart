@@ -1,17 +1,15 @@
 import 'package:flutter/foundation.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../config/supabase_config.dart';
 import '../database/database_helper.dart';
 import 'supabase_service.dart';
 
 /// Centralized authentication service.
 ///
-/// Wraps Google Sign-In and forwards the returned `idToken` to Supabase via
-/// `signInWithIdToken`. Exposes a reactive [authStateChanges] stream and a
-/// [currentUserNotifier] that the UI can listen to without depending on the
-/// `supabase_flutter` package directly.
+/// Uses Supabase's built-in email/password auth (`signInWithPassword` and
+/// `signUp`). Exposes a reactive [currentUserNotifier] and [authStateChanges]
+/// stream so the UI can react without depending on `supabase_flutter`
+/// directly.
 class AuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
@@ -41,62 +39,57 @@ class AuthService {
 
   bool get isSignedIn => currentUser != null;
 
-  /// Native Google Sign-In → Supabase ID-token exchange.
-  ///
-  /// Throws a descriptive [AuthException] on failure so the UI can surface a
-  /// human-readable error message.
-  Future<AuthResponse> signInWithGoogle() async {
+  void _ensureConfigured() {
     if (!SupabaseService.instance.isReady) {
       throw const AuthException(
         'Supabase is not configured. Set SUPABASE_URL / SUPABASE_ANON_KEY '
         'in lib/config/supabase_config.dart (or via --dart-define).',
       );
     }
+  }
 
-    final googleSignIn = GoogleSignIn(
-      // On Android the client id is read from `google-services.json`. On iOS
-      // and web it must be supplied explicitly.
-      clientId: SupabaseConfig.googleIosClientId.isNotEmpty
-          ? SupabaseConfig.googleIosClientId
-          : null,
-      serverClientId: SupabaseConfig.googleWebClientId.isNotEmpty
-          ? SupabaseConfig.googleWebClientId
-          : null,
-      scopes: const ['email', 'profile', 'openid'],
-    );
-
-    final googleUser = await googleSignIn.signIn();
-    if (googleUser == null) {
-      throw const AuthException('Google sign-in was cancelled.');
-    }
-
-    final googleAuth = await googleUser.authentication;
-    final idToken = googleAuth.idToken;
-    final accessToken = googleAuth.accessToken;
-
-    if (idToken == null) {
-      throw const AuthException(
-        'Google sign-in did not return an ID token. Verify the OAuth client '
-        'configuration in the Google Cloud console.',
-      );
-    }
-
-    return await SupabaseService.instance.auth.signInWithIdToken(
-      provider: OAuthProvider.google,
-      idToken: idToken,
-      accessToken: accessToken,
+  /// Email + password sign-in. Throws [AuthException] on failure.
+  Future<AuthResponse> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    _ensureConfigured();
+    return await SupabaseService.instance.auth.signInWithPassword(
+      email: email.trim(),
+      password: password,
     );
   }
 
-  /// Signs out of Supabase, revokes the local Google session, and wipes the
-  /// SQLite cache so the next user does not inherit the previous user's data.
-  Future<void> signOut() async {
-    try {
-      await GoogleSignIn().signOut();
-    } catch (_) {
-      // Non-fatal: the Google SDK may not be initialized.
-    }
+  /// Email + password sign-up.
+  ///
+  /// If email confirmation is enabled in the Supabase project, the returned
+  /// [AuthResponse] will have a `null` session and the user must confirm via
+  /// the email link before they can sign in. If confirmation is disabled, a
+  /// session is returned immediately.
+  Future<AuthResponse> signUpWithEmail({
+    required String email,
+    required String password,
+    String? displayName,
+  }) async {
+    _ensureConfigured();
+    return await SupabaseService.instance.auth.signUp(
+      email: email.trim(),
+      password: password,
+      data: displayName != null && displayName.trim().isNotEmpty
+          ? {'display_name': displayName.trim()}
+          : null,
+    );
+  }
 
+  /// Sends a password-reset email to [email].
+  Future<void> sendPasswordReset(String email) async {
+    _ensureConfigured();
+    await SupabaseService.instance.auth.resetPasswordForEmail(email.trim());
+  }
+
+  /// Signs out of Supabase and wipes the local SQLite cache so the next user
+  /// does not inherit the previous user's data.
+  Future<void> signOut() async {
     if (SupabaseService.instance.isReady) {
       await SupabaseService.instance.auth.signOut();
     }

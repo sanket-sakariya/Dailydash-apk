@@ -25,19 +25,6 @@ class SupabaseConfig {
     defaultValue: 'YOUR-SUPABASE-ANON-KEY',
   );
 
-  /// Web OAuth client id — required by `google_sign_in` on web.
-  /// Leave empty if you only target Android/iOS.
-  static const String googleWebClientId = String.fromEnvironment(
-    'GOOGLE_WEB_CLIENT_ID',
-    defaultValue: '',
-  );
-
-  /// iOS OAuth client id — required by `google_sign_in` on iOS.
-  static const String googleIosClientId = String.fromEnvironment(
-    'GOOGLE_IOS_CLIENT_ID',
-    defaultValue: '',
-  );
-
   /// Returns true when the values above have been overridden with a real
   /// Supabase project. Used by `main.dart` to decide whether to initialize
   /// Supabase + the auth guard, so the app stays runnable in pure-offline
