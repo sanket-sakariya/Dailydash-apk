@@ -131,28 +131,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _resetPassword() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      setState(() => _errorMessage = 'Please enter your email first');
-      return;
-    }
-
-    try {
-      await AuthService.instance.resetPassword(email);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password reset email sent!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } on AuthException catch (e) {
-      setState(() => _errorMessage = e.message);
-    }
-  }
-
   void _toggleMode() {
     setState(() {
       _isSignUp = !_isSignUp;
@@ -414,21 +392,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ],
-                  ],
-
-                  // Forgot password (sign in only)
-                  if (!_isSignUp) ...[
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _resetPassword,
-                        child: Text(
-                          'Forgot password?',
-                          style: TextStyle(color: colors.primary),
-                        ),
-                      ),
-                    ),
                   ],
 
                   const SizedBox(height: 24),

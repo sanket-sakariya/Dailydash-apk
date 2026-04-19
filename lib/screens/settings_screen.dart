@@ -19,6 +19,7 @@ import '../services/auth_service.dart';
 import '../services/sync_service.dart';
 import '../services/profile_service.dart';
 import 'auth/change_password_screen.dart';
+import 'auth/change_email_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -1650,6 +1651,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                   Text(
                                     'Update your account password',
+                                    style: TextStyle(
+                                      color: colors.onSurfaceDim,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right,
+                              color: colors.onSurfaceDim,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Change Email
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ChangeEmailScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: colors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: colors.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(
+                                Icons.alternate_email,
+                                color: colors.primary,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Change Email',
+                                    style: TextStyle(
+                                      color: colors.onSurface,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Update your email address',
                                     style: TextStyle(
                                       color: colors.onSurfaceDim,
                                       fontSize: 13,
