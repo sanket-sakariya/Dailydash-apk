@@ -97,14 +97,21 @@ class AuthService {
     final userId = currentUserId;
     if (userId == null) return;
 
+    // Delay to ensure UI is ready
+    await Future.delayed(const Duration(milliseconds: 500));
+
     try {
       // Assign any orphaned local expenses to this user
       await repo.assignUserIdToOrphans(userId);
+    } catch (e) {
+      debugPrint('Error assigning orphans: $e');
+    }
 
+    try {
       // Trigger a full sync to pull any existing cloud data
       await SyncService.instance.fullSync();
     } catch (e) {
-      debugPrint('Error during post-signin setup: $e');
+      debugPrint('Error during sync: $e');
     }
   }
 
@@ -197,6 +204,63 @@ class AuthService {
 
     try {
       await _supabase.auth.resetPasswordForEmail(email);
+    } on AuthException catch (e) {
+      errorNotifier.value = e.message;
+      rethrow;
+    } finally {
+      isLoadingNotifier.value = false;
+    }
+  }
+
+  /// Send OTP to email for signup verification
+  Future<void> sendSignUpOtp({required String email}) async {
+    errorNotifier.value = null;
+    isLoadingNotifier.value = true;
+
+    try {
+      // Use signInWithOtp to send OTP - this creates user if doesn't exist
+      await _supabase.auth.signInWithOtp(
+        email: email,
+        shouldCreateUser: true,
+      );
+    } on AuthException catch (e) {
+      errorNotifier.value = e.message;
+      rethrow;
+    } finally {
+      isLoadingNotifier.value = false;
+    }
+  }
+
+  /// Sign up with email, password, and OTP verification
+  Future<AuthResponse> signUpWithOtp({
+    required String email,
+    required String password,
+    required String otp,
+  }) async {
+    errorNotifier.value = null;
+    isLoadingNotifier.value = true;
+
+    try {
+      // Verify the OTP - this signs in the user
+      final verifyResponse = await _supabase.auth.verifyOTP(
+        email: email,
+        token: otp,
+        type: OtpType.email,
+      );
+
+      if (verifyResponse.user == null || verifyResponse.session == null) {
+        throw const AuthException('Invalid OTP code');
+      }
+
+      // OTP verified and user is signed in, now set the password
+      await _supabase.auth.updateUser(
+        UserAttributes(password: password),
+      );
+
+      currentUserNotifier.value = verifyResponse.user;
+      authStateNotifier.value = AppAuthState.authenticated;
+
+      return verifyResponse;
     } on AuthException catch (e) {
       errorNotifier.value = e.message;
       rethrow;

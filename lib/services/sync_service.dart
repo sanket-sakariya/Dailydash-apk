@@ -174,7 +174,14 @@ class SyncService {
     final userId = AuthService.instance.currentUserId;
     if (userId == null) return;
 
-    final unsyncedExpenses = await repo.getUnsyncedExpenses();
+    List<Expense> unsyncedExpenses;
+    try {
+      unsyncedExpenses = await repo.getUnsyncedExpenses();
+    } catch (e) {
+      debugPrint('Error getting unsynced expenses: $e');
+      return;
+    }
+
     if (unsyncedExpenses.isEmpty) return;
 
     debugPrint('Pushing ${unsyncedExpenses.length} unsynced expenses');
@@ -202,8 +209,12 @@ class SyncService {
 
     // Mark successfully synced expenses
     if (syncedIds.isNotEmpty) {
-      await repo.markAsSynced(syncedIds);
-      debugPrint('Marked ${syncedIds.length} expenses as synced');
+      try {
+        await repo.markAsSynced(syncedIds);
+        debugPrint('Marked ${syncedIds.length} expenses as synced');
+      } catch (e) {
+        debugPrint('Error marking as synced: $e');
+      }
     }
   }
 
@@ -212,7 +223,12 @@ class SyncService {
     final userId = AuthService.instance.currentUserId;
     if (userId == null) return;
 
-    final lastPulledAt = isFullSync ? null : await repo.getLastPulledAt();
+    DateTime? lastPulledAt;
+    try {
+      lastPulledAt = isFullSync ? null : await repo.getLastPulledAt();
+    } catch (e) {
+      debugPrint('Error getting lastPulledAt: $e');
+    }
     final pullTimestamp = DateTime.now().toUtc();
 
     debugPrint('Pulling changes since: $lastPulledAt (fullSync: $isFullSync)');
@@ -238,14 +254,22 @@ class SyncService {
 
       // Apply remote changes with conflict resolution
       for (final remoteExpense in remoteExpenses) {
-        await _applyRemoteChange(remoteExpense);
+        try {
+          await _applyRemoteChange(remoteExpense);
+        } catch (e) {
+          debugPrint('Error applying remote change ${remoteExpense.id}: $e');
+        }
       }
 
       // Update last pulled timestamp
-      await repo.setLastPulledAt(pullTimestamp);
+      try {
+        await repo.setLastPulledAt(pullTimestamp);
+      } catch (e) {
+        debugPrint('Error setting lastPulledAt: $e');
+      }
     } catch (e) {
       debugPrint('Error pulling changes: $e');
-      rethrow;
+      // Don't rethrow - allow partial sync to complete
     }
   }
 
@@ -278,13 +302,16 @@ class SyncService {
     }
   }
 
-  /// Dispose resources
+  /// Dispose resources (call only on app termination)
   void dispose() {
     _connectivitySubscription?.cancel();
+    _connectivitySubscription = null;
     _debounceTimer?.cancel();
-    syncStatusNotifier.dispose();
-    pendingCountNotifier.dispose();
-    isOnlineNotifier.dispose();
-    lastErrorNotifier.dispose();
+    _debounceTimer = null;
+    _isSyncing = false;
+    // Reset notifiers instead of disposing (service is singleton)
+    syncStatusNotifier.value = SyncStatus.idle;
+    pendingCountNotifier.value = 0;
+    lastErrorNotifier.value = null;
   }
 }
