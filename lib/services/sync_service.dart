@@ -261,15 +261,11 @@ class SyncService {
         }
       }
 
-      // Update last pulled timestamp
-      try {
-        await repo.setLastPulledAt(pullTimestamp);
-      } catch (e) {
-        debugPrint('Error setting lastPulledAt: $e');
-      }
+      // Update last pulled timestamp - CRITICAL for preventing duplicates
+      await repo.setLastPulledAt(pullTimestamp);
     } catch (e) {
       debugPrint('Error pulling changes: $e');
-      // Don't rethrow - allow partial sync to complete
+      rethrow; // Let caller know pull failed so we can retry properly
     }
   }
 

@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../main.dart'
-    show
-        repo,
-        currencyNotifier,
-        navigationIndexNotifier,
-        budgetNotifier;
+    show repo, currencyNotifier, navigationIndexNotifier, budgetNotifier;
 import '../models/expense.dart';
 import '../widgets/sync_indicator.dart';
 import '../services/sync_service.dart';
 import 'add_expense_screen.dart';
+import 'all_transactions_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -600,13 +597,23 @@ class DashboardScreenState extends State<DashboardScreen> {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          Text(
-                            'VIEW ALL',
-                            style: TextStyle(
-                              color: colors.primary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AllTransactionsScreen(),
+                                ),
+                              ).then((_) => loadData());
+                            },
+                            child: Text(
+                              'VIEW ALL',
+                              style: TextStyle(
+                                color: colors.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
                         ],

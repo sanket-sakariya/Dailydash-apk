@@ -6,6 +6,7 @@ class SupabaseConfig {
   /// Your Supabase project URL
   /// Example: 'https://your-project-id.supabase.co'
   static const String url = 'https://gocpryvoshpzfzlvyjbw.supabase.co';
+  // static const String url = 'https://dailydash.renishponkiya1111.workers.dev/';
 
   /// Your Supabase anonymous (public) key
   /// This is safe to use in client-side code
