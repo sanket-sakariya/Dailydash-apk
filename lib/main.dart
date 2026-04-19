@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:device_preview/device_preview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show User;
+import 'config/supabase_config.dart';
 import 'theme/app_theme.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/login_screen.dart';
 import 'database/data_repository.dart';
 import 'database/in_memory_repository.dart';
 import 'database/database_helper.dart';
+import 'database/hybrid_repository.dart';
+import 'services/auth_service.dart';
+import 'services/supabase_service.dart';
+import 'services/sync_service.dart';
 
 late final DataRepository repo;
 late final SharedPreferences prefs;
@@ -19,14 +26,25 @@ void main() async {
   // Initialize shared preferences for settings persistence
   prefs = await SharedPreferences.getInstance();
 
-  // Use in-memory on web (sqflite WASM is unreliable), SQLite on native
+  // Initialize Supabase (no-op when credentials are not yet configured).
+  await SupabaseService.instance.initialize();
+  AuthService.instance.initialize();
+
+  // Use in-memory on web (sqflite WASM is unreliable), SQLite on native.
+  // When Supabase is configured we wrap the local store in HybridRepository so
+  // every write is mirrored to the cloud and reads stay offline-first.
   if (kIsWeb) {
     repo = InMemoryRepository.instance;
   } else {
-    repo = DatabaseHelper.instance;
     // Pre-initialize the database to ensure it's ready
-    await (repo as DatabaseHelper).database;
+    await DatabaseHelper.instance.database;
+    repo = SupabaseConfig.isConfigured
+        ? HybridRepository.instance
+        : DatabaseHelper.instance;
   }
+
+  // Kick off connectivity-driven sync (no-op until the user signs in).
+  SyncService.instance.initialize();
 
   runApp(
     DevicePreview(enabled: false, builder: (context) => const DailyDashApp()),
@@ -175,8 +193,30 @@ class DailyDashApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'DailyDash',
           theme: isDarkMode ? DailyDashTheme.darkTheme : DailyDashTheme.lightTheme,
-          home: const MainShell(),
+          home: const _AuthGate(),
         );
+      },
+    );
+  }
+}
+
+/// Auth Guard: shows [LoginScreen] when Supabase is configured but no user is
+/// signed in, otherwise shows the normal [MainShell]. When Supabase has not
+/// been configured (developer is running pure-offline) the guard is a no-op
+/// and forwards directly to [MainShell] so the app remains usable.
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    if (!SupabaseConfig.isConfigured) {
+      return const MainShell();
+    }
+    return ValueListenableBuilder<User?>(
+      valueListenable: AuthService.instance.currentUserNotifier,
+      builder: (context, user, _) {
+        if (user == null) return const LoginScreen();
+        return const MainShell();
       },
     );
   }

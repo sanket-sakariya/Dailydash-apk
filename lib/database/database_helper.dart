@@ -17,19 +17,28 @@ class DatabaseHelper implements DataRepository {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = '$dbPath/$filePath';
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
 
   Future<void> _createDB(Database db, int version) async {
     await db.execute('''
       CREATE TABLE expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        remote_id TEXT,
+        user_id TEXT,
         amount REAL NOT NULL,
         date_time TEXT NOT NULL,
         description TEXT NOT NULL,
         category TEXT NOT NULL,
         payment_mode TEXT NOT NULL,
-        is_income INTEGER DEFAULT 0
+        is_income INTEGER DEFAULT 0,
+        is_synced INTEGER DEFAULT 0,
+        updated_at TEXT NOT NULL
       )
     ''');
 
@@ -39,6 +48,22 @@ class DatabaseHelper implements DataRepository {
         value TEXT NOT NULL
       )
     ''');
+  }
+
+  /// Migrates existing v1 installations to the v2 schema (Supabase sync
+  /// columns). Existing rows are flagged unsynced so the next sync push will
+  /// upload them once the user signs in.
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE expenses ADD COLUMN remote_id TEXT');
+      await db.execute('ALTER TABLE expenses ADD COLUMN user_id TEXT');
+      await db.execute(
+        'ALTER TABLE expenses ADD COLUMN is_synced INTEGER DEFAULT 0',
+      );
+      await db.execute(
+        "ALTER TABLE expenses ADD COLUMN updated_at TEXT NOT NULL DEFAULT '1970-01-01T00:00:00.000Z'",
+      );
+    }
   }
 
   @override
@@ -91,6 +116,60 @@ class DatabaseHelper implements DataRepository {
   Future<void> deleteExpense(int id) async {
     final db = await database;
     await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Returns all locally-modified rows that have not yet been pushed to
+  /// Supabase. Used by [SyncService] / [HybridRepository] during push.
+  Future<List<Expense>> getUnsyncedExpenses() async {
+    final db = await database;
+    final maps = await db.query(
+      'expenses',
+      where: 'is_synced = 0',
+      orderBy: 'updated_at ASC',
+    );
+    return maps.map((m) => Expense.fromMap(m)).toList();
+  }
+
+  /// Marks a single local row as synced and stores the assigned remote UUID.
+  Future<void> markSynced(int localId, String remoteId) async {
+    final db = await database;
+    await db.update(
+      'expenses',
+      {'is_synced': 1, 'remote_id': remoteId},
+      where: 'id = ?',
+      whereArgs: [localId],
+    );
+  }
+
+  /// Inserts or updates a row coming from Supabase (matched by `remote_id`).
+  /// The merged row is always flagged as synced.
+  Future<void> upsertFromRemote(Expense remote) async {
+    if (remote.remoteId == null) return;
+    final db = await database;
+    final existing = await db.query(
+      'expenses',
+      where: 'remote_id = ?',
+      whereArgs: [remote.remoteId],
+      limit: 1,
+    );
+    final values = remote.copyWith(isSynced: true).toMap()..remove('id');
+    if (existing.isEmpty) {
+      await db.insert('expenses', values);
+    } else {
+      await db.update(
+        'expenses',
+        values,
+        where: 'remote_id = ?',
+        whereArgs: [remote.remoteId],
+      );
+    }
+  }
+
+  /// Clears all user-owned data. Called on sign-out so the next user does not
+  /// inherit cached rows.
+  Future<void> clearAll() async {
+    final db = await database;
+    await db.delete('expenses');
   }
 
   @override
