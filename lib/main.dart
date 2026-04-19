@@ -14,6 +14,7 @@ import 'database/database_helper.dart';
 import 'config/supabase_config.dart';
 import 'services/auth_service.dart';
 import 'services/sync_service.dart';
+import 'services/profile_service.dart';
 
 late final DataRepository repo;
 late final SharedPreferences prefs;
@@ -54,6 +55,18 @@ class CurrencyNotifier extends ValueNotifier<String> {
   void setCurrency(String currency) {
     value = currency;
     prefs.setString('currency', currency);
+    // Sync to Supabase
+    ProfileService.instance.updateCurrency(currency);
+  }
+
+  void loadFromProfile(String currency) {
+    value = currency;
+    prefs.setString('currency', currency);
+  }
+
+  void clear() {
+    value = 'INR';
+    prefs.setString('currency', 'INR');
   }
 
   String get symbol {
@@ -90,11 +103,19 @@ class LanguageNotifier extends ValueNotifier<String> {
 }
 
 class UsernameNotifier extends ValueNotifier<String> {
-  UsernameNotifier() : super(prefs.getString('username') ?? 'Alex Rivera');
+  UsernameNotifier() : super('User');
 
   void setUsername(String name) {
     value = name;
-    prefs.setString('username', name);
+    // Don't save to prefs - use ProfileService for persistence
+  }
+
+  void loadFromProfile(String name) {
+    value = name;
+  }
+
+  void clear() {
+    value = 'User';
   }
 }
 
@@ -108,6 +129,24 @@ class ProfileImageNotifier extends ValueNotifier<String?> {
     } else {
       prefs.remove('profileImage');
     }
+  }
+}
+
+// Avatar notifier for profile avatar type - syncs with ProfileService
+class AvatarNotifier extends ValueNotifier<AvatarType> {
+  AvatarNotifier() : super(AvatarType.male);
+
+  void setAvatar(AvatarType type) {
+    value = type;
+    ProfileService.instance.updateAvatarType(type);
+  }
+
+  void loadFromProfile(AvatarType type) {
+    value = type;
+  }
+
+  void clear() {
+    value = AvatarType.male;
   }
 }
 
@@ -160,6 +199,21 @@ class BudgetNotifier extends ValueNotifier<double> {
     final now = DateTime.now();
     prefs.setInt('budgetMonth', now.month);
     prefs.setInt('budgetYear', now.year);
+    // Sync to Supabase
+    ProfileService.instance.updateMonthlyBudget(budget);
+  }
+
+  void loadFromProfile(double budget) {
+    value = budget;
+    prefs.setDouble('monthlyBudget', budget);
+    final now = DateTime.now();
+    prefs.setInt('budgetMonth', now.month);
+    prefs.setInt('budgetYear', now.year);
+  }
+
+  void clear() {
+    value = 0;
+    prefs.setDouble('monthlyBudget', 0);
   }
 
   bool get isSet => value > 0;
@@ -169,6 +223,7 @@ final currencyNotifier = CurrencyNotifier();
 final languageNotifier = LanguageNotifier();
 final usernameNotifier = UsernameNotifier();
 final profileImageNotifier = ProfileImageNotifier();
+final avatarNotifier = AvatarNotifier();
 final notificationsNotifier = NotificationsNotifier();
 final darkModeNotifier = DarkModeNotifier();
 final budgetNotifier = BudgetNotifier();
@@ -266,6 +321,20 @@ class _MainShellState extends State<MainShell> {
     _currentIndex = navigationIndexNotifier.value;
     navigationIndexNotifier.addListener(_onNavigationChange);
     darkModeNotifier.addListener(_onThemeChange);
+
+    // Load user profile from Supabase
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    await ProfileService.instance.loadProfile();
+    final profile = ProfileService.instance.profileNotifier.value;
+    if (profile != null) {
+      usernameNotifier.loadFromProfile(profile.displayName);
+      avatarNotifier.loadFromProfile(profile.avatarType);
+      budgetNotifier.loadFromProfile(profile.monthlyBudget);
+      currencyNotifier.loadFromProfile(profile.currency);
+    }
   }
 
   @override

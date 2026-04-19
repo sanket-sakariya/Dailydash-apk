@@ -2,8 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../main.dart' show repo;
+import '../main.dart' show repo, usernameNotifier, avatarNotifier, budgetNotifier, currencyNotifier;
 import 'sync_service.dart';
+import 'profile_service.dart';
 
 /// Application authentication states (prefixed to avoid conflict with Supabase AuthState)
 enum AppAuthState {
@@ -181,6 +182,13 @@ class AuthService {
       // CRITICAL: Clear local data first to prevent data leakage
       await repo.clearAllData();
 
+      // Clear profile cache and notifiers
+      await ProfileService.instance.clearProfile();
+      usernameNotifier.clear();
+      avatarNotifier.clear();
+      budgetNotifier.clear();
+      currencyNotifier.clear();
+
       // Stop sync service
       SyncService.instance.dispose();
 
@@ -263,6 +271,54 @@ class AuthService {
       return verifyResponse;
     } on AuthException catch (e) {
       errorNotifier.value = e.message;
+      rethrow;
+    } finally {
+      isLoadingNotifier.value = false;
+    }
+  }
+
+  /// Delete user account permanently
+  ///
+  /// This will:
+  /// 1. Delete all user data from Supabase
+  /// 2. Clear local data
+  /// 3. Sign out
+  Future<void> deleteAccount() async {
+    errorNotifier.value = null;
+    isLoadingNotifier.value = true;
+
+    try {
+      final userId = currentUserId;
+      if (userId == null) {
+        throw const AuthException('No user signed in');
+      }
+
+      // Delete user's expenses from Supabase
+      await _supabase.from('expenses').delete().eq('user_id', userId);
+
+      // Delete user's profile from Supabase
+      await _supabase.from('user_profiles').delete().eq('id', userId);
+
+      // Clear local data
+      await repo.clearAllData();
+
+      // Clear profile cache and notifiers
+      await ProfileService.instance.clearProfile();
+      usernameNotifier.clear();
+      avatarNotifier.clear();
+      budgetNotifier.clear();
+      currencyNotifier.clear();
+
+      // Stop sync service
+      SyncService.instance.dispose();
+
+      // Sign out from Supabase
+      await _supabase.auth.signOut();
+
+      currentUserNotifier.value = null;
+      authStateNotifier.value = AppAuthState.unauthenticated;
+    } catch (e) {
+      errorNotifier.value = e.toString();
       rethrow;
     } finally {
       isLoadingNotifier.value = false;

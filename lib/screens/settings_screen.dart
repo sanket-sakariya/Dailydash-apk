@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -13,11 +12,12 @@ import '../main.dart'
         currencyNotifier,
         languageNotifier,
         usernameNotifier,
-        profileImageNotifier,
+        avatarNotifier,
         darkModeNotifier,
         repo;
 import '../services/auth_service.dart';
 import '../services/sync_service.dart';
+import '../services/profile_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -51,16 +51,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    darkModeNotifier.addListener(_onThemeChange);
+    darkModeNotifier.addListener(_onSettingsChange);
+    usernameNotifier.addListener(_onSettingsChange);
+    avatarNotifier.addListener(_onSettingsChange);
   }
 
   @override
   void dispose() {
-    darkModeNotifier.removeListener(_onThemeChange);
+    darkModeNotifier.removeListener(_onSettingsChange);
+    usernameNotifier.removeListener(_onSettingsChange);
+    avatarNotifier.removeListener(_onSettingsChange);
     super.dispose();
   }
 
-  void _onThemeChange() {
+  void _onSettingsChange() {
     setState(() {});
   }
 
@@ -310,10 +314,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
+  void _showAvatarPicker() {
     final colors = context.colors;
-    final source = await showModalBottomSheet<ImageSource>(
+    showModalBottomSheet(
       context: context,
       backgroundColor: colors.surfaceContainerLow,
       shape: const RoundedRectangleBorder(
@@ -337,82 +340,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Choose Photo',
+                'Choose Avatar',
                 style: TextStyle(
                   color: colors.onSurface,
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: colors.primary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildAvatarOption(
+                    type: AvatarType.male,
+                    emoji: ProfileService.getAvatarEmoji(AvatarType.male),
+                    label: 'Male',
+                    colors: colors,
                   ),
-                  child: Icon(Icons.camera_alt, color: colors.primary),
-                ),
-                title: Text(
-                  'Camera',
-                  style: TextStyle(color: colors.onSurface),
-                ),
-                onTap: () => Navigator.pop(context, ImageSource.camera),
+                  _buildAvatarOption(
+                    type: AvatarType.female,
+                    emoji: ProfileService.getAvatarEmoji(AvatarType.female),
+                    label: 'Female',
+                    colors: colors,
+                  ),
+                  _buildAvatarOption(
+                    type: AvatarType.neutral,
+                    emoji: ProfileService.getAvatarEmoji(AvatarType.neutral),
+                    label: 'Other',
+                    colors: colors,
+                  ),
+                ],
               ),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: colors.secondary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.photo_library, color: colors.secondary),
-                ),
-                title: Text(
-                  'Gallery',
-                  style: TextStyle(color: colors.onSurface),
-                ),
-                onTap: () => Navigator.pop(context, ImageSource.gallery),
-              ),
-              if (profileImageNotifier.value != null)
-                ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: colors.error.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.delete, color: colors.error),
-                  ),
-                  title: Text(
-                    'Remove Photo',
-                    style: TextStyle(color: colors.error),
-                  ),
-                  onTap: () {
-                    profileImageNotifier.setImage(null);
-                    Navigator.pop(context);
-                    setState(() {});
-                  },
-                ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
             ],
           ),
         );
       },
     );
+  }
 
-    if (source != null) {
-      final pickedFile = await picker.pickImage(
-        source: source,
-        maxWidth: 512,
-        maxHeight: 512,
-      );
-      if (pickedFile != null) {
-        profileImageNotifier.setImage(pickedFile.path);
+  Widget _buildAvatarOption({
+    required AvatarType type,
+    required String emoji,
+    required String label,
+    required DailyDashColorScheme colors,
+  }) {
+    final isSelected = avatarNotifier.value == type;
+    return GestureDetector(
+      onTap: () {
+        avatarNotifier.setAvatar(type);
+        Navigator.pop(context);
         setState(() {});
-      }
-    }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? colors.primary.withValues(alpha: 0.15)
+              : colors.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(16),
+          border: isSelected
+              ? Border.all(color: colors.primary, width: 2)
+              : null,
+        ),
+        child: Column(
+          children: [
+            Text(
+              emoji,
+              style: const TextStyle(fontSize: 48),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? colors.primary : colors.onSurface,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+            if (isSelected) ...[
+              const SizedBox(height: 4),
+              Icon(
+                Icons.check_circle,
+                color: colors.primary,
+                size: 20,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   void _showEditUsernameDialog() {
@@ -460,6 +476,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () {
                 if (controller.text.trim().isNotEmpty) {
                   usernameNotifier.setUsername(controller.text.trim());
+                  ProfileService.instance.updateDisplayName(controller.text.trim());
                   Navigator.pop(context);
                   setState(() {});
                 }
@@ -1355,42 +1372,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Row(
                     children: [
                       GestureDetector(
-                        onTap: _pickImage,
+                        onTap: _showAvatarPicker,
                         child: Container(
                           width: 72,
                           height: 72,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
+                            color: colors.primary.withValues(alpha: 0.15),
                             border: Border.all(
-                              color: colors.secondary,
+                              color: colors.primary,
                               width: 3,
                             ),
                           ),
-                          child: CircleAvatar(
-                            radius: 33,
-                            backgroundColor: colors.surfaceContainerHigh,
-                            backgroundImage: profileImageNotifier.value != null
-                                ? FileImage(File(profileImageNotifier.value!))
-                                : null,
-                            child: profileImageNotifier.value == null
-                                ? Icon(
-                                    Icons.person,
-                                    color: colors.onSurfaceDim,
-                                    size: 36,
-                                  )
-                                : null,
+                          child: Center(
+                            child: Text(
+                              ProfileService.getAvatarEmoji(avatarNotifier.value),
+                              style: const TextStyle(fontSize: 36),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Text(
-                          usernameNotifier.value,
-                          style: TextStyle(
-                            color: colors.onSurface,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              usernameNotifier.value,
+                              style: TextStyle(
+                                color: colors.onSurface,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Tap avatar to change',
+                              style: TextStyle(
+                                color: colors.onSurfaceDim,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       GestureDetector(
