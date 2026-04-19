@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../main.dart'
     show
@@ -18,6 +20,7 @@ import '../main.dart'
 import '../services/auth_service.dart';
 import '../services/sync_service.dart';
 import '../services/profile_service.dart';
+import '../widgets/cartoon_avatar.dart';
 import 'auth/change_password_screen.dart';
 import 'auth/change_email_screen.dart';
 
@@ -56,6 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     darkModeNotifier.addListener(_onSettingsChange);
     usernameNotifier.addListener(_onSettingsChange);
     avatarNotifier.addListener(_onSettingsChange);
+    ProfileService.instance.avatarImageNotifier.addListener(_onSettingsChange);
   }
 
   @override
@@ -63,6 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     darkModeNotifier.removeListener(_onSettingsChange);
     usernameNotifier.removeListener(_onSettingsChange);
     avatarNotifier.removeListener(_onSettingsChange);
+    ProfileService.instance.avatarImageNotifier.removeListener(_onSettingsChange);
     super.dispose();
   }
 
@@ -318,6 +323,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showAvatarPicker() {
     final colors = context.colors;
+    final avatarImage = ProfileService.instance.avatarImageNotifier.value;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.surfaceContainerLow,
@@ -325,91 +332,315 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: colors.onSurfaceDim,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Choose Avatar',
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildAvatarOption(
-                    type: AvatarType.male,
-                    emoji: ProfileService.getAvatarEmoji(AvatarType.male),
-                    label: 'Male',
-                    colors: colors,
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colors.onSurfaceDim,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ),
-                  _buildAvatarOption(
-                    type: AvatarType.female,
-                    emoji: ProfileService.getAvatarEmoji(AvatarType.female),
-                    label: 'Female',
-                    colors: colors,
+                  const SizedBox(height: 20),
+                  Text(
+                    'Choose Avatar',
+                    style: TextStyle(
+                      color: colors.onSurface,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  _buildAvatarOption(
-                    type: AvatarType.neutral,
-                    emoji: ProfileService.getAvatarEmoji(AvatarType.neutral),
-                    label: 'Other',
-                    colors: colors,
+                  const SizedBox(height: 24),
+
+                  // Upload Photo Option
+                  GestureDetector(
+                    onTap: () => _pickAndUploadImage(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: avatarImage != null
+                            ? colors.primary.withValues(alpha: 0.15)
+                            : colors.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(16),
+                        border: avatarImage != null
+                            ? Border.all(color: colors.primary, width: 2)
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: colors.surfaceContainerHighest,
+                              image: avatarImage != null
+                                  ? DecorationImage(
+                                      image: MemoryImage(base64Decode(avatarImage)),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: avatarImage == null
+                                ? Icon(
+                                    Icons.add_a_photo_rounded,
+                                    color: colors.primary,
+                                    size: 24,
+                                  )
+                                : null,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  avatarImage != null ? 'Change Photo' : 'Upload Photo',
+                                  style: TextStyle(
+                                    color: colors.onSurface,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  avatarImage != null
+                                      ? 'Tap to change your profile photo'
+                                      : 'Use your own photo as avatar',
+                                  style: TextStyle(
+                                    color: colors.onSurfaceDim,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (avatarImage != null) ...[
+                            IconButton(
+                              onPressed: () async {
+                                await ProfileService.instance.removeAvatarImage();
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  setState(() {});
+                                }
+                              },
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                color: colors.error,
+                              ),
+                              tooltip: 'Remove photo',
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
+
+                  const SizedBox(height: 16),
+
+                  // Divider with "or" text
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: colors.onSurfaceDim.withValues(alpha: 0.3))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          'or choose an avatar',
+                          style: TextStyle(color: colors.onSurfaceDim, fontSize: 12),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: colors.onSurfaceDim.withValues(alpha: 0.3))),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Cartoon Avatar Options
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildAvatarOption(
+                        type: AvatarType.male,
+                        label: 'Male',
+                        colors: colors,
+                        hasUploadedImage: avatarImage != null,
+                      ),
+                      _buildAvatarOption(
+                        type: AvatarType.female,
+                        label: 'Female',
+                        colors: colors,
+                        hasUploadedImage: avatarImage != null,
+                      ),
+                      _buildAvatarOption(
+                        type: AvatarType.neutral,
+                        label: 'Other',
+                        colors: colors,
+                        hasUploadedImage: avatarImage != null,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
+  Future<void> _pickAndUploadImage(BuildContext context) async {
+    final picker = ImagePicker();
+    final colors = this.context.colors;
+
+    // Show source selection dialog
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: colors.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Select Photo',
+          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.w700),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt_rounded, color: colors.primary),
+              title: Text('Camera', style: TextStyle(color: colors.onSurface)),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library_rounded, color: colors.primary),
+              title: Text('Gallery', style: TextStyle(color: colors.onSurface)),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    try {
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 90,
+      );
+
+      if (pickedFile == null) return;
+
+      // Show loading indicator
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: colors.primary),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Uploading...',
+                    style: TextStyle(color: colors.onSurface),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Read and upload image
+      final bytes = await pickedFile.readAsBytes();
+      final success = await ProfileService.instance.uploadAvatarImage(bytes);
+
+      // Close loading and avatar picker
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading
+        Navigator.pop(context); // Close avatar picker
+        setState(() {});
+
+        if (success) {
+          ScaffoldMessenger.of(this.context).showSnackBar(
+            SnackBar(
+              content: const Text('Profile photo updated'),
+              backgroundColor: colors.success,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(this.context).showSnackBar(
+            SnackBar(
+              content: const Text('Failed to upload photo'),
+              backgroundColor: colors.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading if open
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: colors.error,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildAvatarOption({
     required AvatarType type,
-    required String emoji,
     required String label,
     required DailyDashColorScheme colors,
+    bool hasUploadedImage = false,
   }) {
-    final isSelected = avatarNotifier.value == type;
+    final isSelected = avatarNotifier.value == type && !hasUploadedImage;
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
+        // Remove uploaded image when selecting cartoon avatar
+        if (hasUploadedImage) {
+          await ProfileService.instance.removeAvatarImage();
+        }
         avatarNotifier.setAvatar(type);
         Navigator.pop(context);
         setState(() {});
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
               ? colors.primary.withValues(alpha: 0.15)
               : colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           border: isSelected
               ? Border.all(color: colors.primary, width: 2)
               : null,
         ),
         child: Column(
           children: [
-            Text(
-              emoji,
-              style: const TextStyle(fontSize: 48),
+            CartoonAvatar(
+              type: type,
+              size: 64,
+              showBorder: false,
             ),
             const SizedBox(height: 8),
             Text(
@@ -431,6 +662,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  /// Build profile avatar - shows uploaded image or cartoon avatar
+  Widget _buildProfileAvatar(DailyDashColorScheme colors, {double size = 72}) {
+    final avatarImage = ProfileService.instance.avatarImageNotifier.value;
+
+    if (avatarImage != null) {
+      // Show uploaded image
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: colors.primary, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(25),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+          image: DecorationImage(
+            image: MemoryImage(base64Decode(avatarImage)),
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    } else {
+      // Show cartoon avatar
+      return CartoonAvatar(
+        type: avatarNotifier.value,
+        size: size,
+        borderColor: colors.primary,
+      );
+    }
   }
 
   void _showEditUsernameDialog() {
@@ -1375,24 +1641,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       GestureDetector(
                         onTap: _showAvatarPicker,
-                        child: Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colors.primary.withValues(alpha: 0.15),
-                            border: Border.all(
-                              color: colors.primary,
-                              width: 3,
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              ProfileService.getAvatarEmoji(avatarNotifier.value),
-                              style: const TextStyle(fontSize: 36),
-                            ),
-                          ),
-                        ),
+                        child: _buildProfileAvatar(colors),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
