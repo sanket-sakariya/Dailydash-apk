@@ -20,7 +20,6 @@ import '../main.dart'
 import '../services/auth_service.dart';
 import '../services/sync_service.dart';
 import '../services/profile_service.dart';
-import '../widgets/cartoon_avatar.dart';
 import 'auth/change_password_screen.dart';
 import 'auth/change_email_screen.dart';
 
@@ -452,7 +451,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          'or choose an avatar',
+                          'or choose an emoji',
                           style: TextStyle(color: colors.onSurfaceDim, fontSize: 12),
                         ),
                       ),
@@ -462,7 +461,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Cartoon Avatar Options
+                  // Emoji Avatar Options
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -616,7 +615,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isSelected = avatarNotifier.value == type && !hasUploadedImage;
     return GestureDetector(
       onTap: () async {
-        // Remove uploaded image when selecting cartoon avatar
+        // Remove uploaded image when selecting emoji avatar
         if (hasUploadedImage) {
           await ProfileService.instance.removeAvatarImage();
         }
@@ -637,10 +636,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         child: Column(
           children: [
-            CartoonAvatar(
-              type: type,
-              size: 64,
-              showBorder: false,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colors.surfaceContainerHighest,
+              ),
+              child: Center(
+                child: Text(
+                  _getAvatarEmoji(type),
+                  style: const TextStyle(fontSize: 32),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -664,7 +672,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// Build profile avatar - shows uploaded image or cartoon avatar
+  /// Build profile avatar - shows uploaded image or emoji avatar
   Widget _buildProfileAvatar(DailyDashColorScheme colors, {double size = 72}) {
     final avatarImage = ProfileService.instance.avatarImageNotifier.value;
 
@@ -690,12 +698,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     } else {
-      // Show cartoon avatar
-      return CartoonAvatar(
-        type: avatarNotifier.value,
-        size: size,
-        borderColor: colors.primary,
+      // Show emoji avatar
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: colors.surfaceContainerHighest,
+          border: Border.all(color: colors.primary, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(25),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            _getAvatarEmoji(avatarNotifier.value),
+            style: TextStyle(fontSize: size * 0.5),
+          ),
+        ),
       );
+    }
+  }
+
+  /// Get emoji for avatar type (fair skin tone)
+  String _getAvatarEmoji(AvatarType type) {
+    switch (type) {
+      case AvatarType.male:
+        return '👨🏻';
+      case AvatarType.female:
+        return '👩🏻';
+      case AvatarType.neutral:
+        return '👤';
     }
   }
 

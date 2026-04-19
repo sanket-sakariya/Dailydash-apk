@@ -417,15 +417,15 @@ class ProfileService {
     avatarImageNotifier.value = null;
   }
 
-  /// Get avatar emoji based on type
+  /// Get avatar emoji based on type (fair skin tone)
   static String getAvatarEmoji(AvatarType type) {
     switch (type) {
       case AvatarType.male:
-        return '👨';
+        return '👨🏻';
       case AvatarType.female:
-        return '👩';
+        return '👩🏻';
       case AvatarType.neutral:
-        return '👤'; // Blank/neutral profile
+        return '👤';
     }
   }
 }
