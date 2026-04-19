@@ -22,6 +22,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   double _highestCategoryAmount = 0;
   bool _loading = true;
   String _selectedPeriod = 'Daily'; // Daily, Weekly, Monthly
+  String? _selectedBarKey; // Track which bar is tapped
 
   @override
   void initState() {
@@ -563,54 +564,115 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           const SizedBox(height: 24),
           SizedBox(
-            height: 160,
+            height: 180,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: entries.map((entry) {
                 final isLast = entry.key == lastLabel;
+                final isSelected = entry.key == _selectedBarKey;
                 final barHeight = maxValue > 0
                     ? (entry.value / maxValue * 120).clamp(8.0, 120.0)
                     : 8.0;
 
                 return Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        width: _selectedPeriod == 'Monthly' ? 18 : 28,
-                        height: barHeight,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: isLast
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (_selectedBarKey == entry.key) {
+                          _selectedBarKey = null; // Deselect if tapped again
+                        } else {
+                          _selectedBarKey = entry.key;
+                        }
+                      });
+                    },
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        // Show amount above bar when selected
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          height: isSelected ? 24 : 0,
+                          child: isSelected
+                              ? FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colors.secondary,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      '${currencyNotifier.symbol}${_formatAmount(entry.value)}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                        const SizedBox(height: 4),
+                        // Bar
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: isSelected
+                              ? (_selectedPeriod == 'Monthly' ? 22 : 32)
+                              : (_selectedPeriod == 'Monthly' ? 18 : 28),
+                          height: barHeight,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: isSelected
+                                  ? [
+                                      colors.primary,
+                                      colors.primary.withValues(alpha: 0.7),
+                                    ]
+                                  : isLast
+                                      ? [
+                                          colors.secondary,
+                                          colors.secondary.withValues(alpha: 0.6),
+                                        ]
+                                      : [
+                                          colors.secondary.withValues(alpha: 0.5),
+                                          colors.secondary.withValues(alpha: 0.3),
+                                        ],
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                            boxShadow: isSelected
                                 ? [
-                                    colors.secondary,
-                                    colors.secondary.withValues(alpha: 0.6),
+                                    BoxShadow(
+                                      color: colors.primary.withValues(alpha: 0.4),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
                                   ]
-                                : [
-                                    colors.secondary.withValues(alpha: 0.5),
-                                    colors.secondary.withValues(alpha: 0.3),
-                                  ],
+                                : null,
                           ),
-                          borderRadius: BorderRadius.circular(6),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        entry.key,
-                        style: TextStyle(
-                          color: isLast
-                              ? colors.secondary
-                              : colors.onSurfaceDim,
-                          fontSize: _selectedPeriod == 'Monthly' ? 9 : 11,
-                          fontWeight: isLast
-                              ? FontWeight.w700
-                              : FontWeight.w500,
+                        const SizedBox(height: 8),
+                        Text(
+                          entry.key,
+                          style: TextStyle(
+                            color: isSelected
+                                ? colors.primary
+                                : isLast
+                                    ? colors.secondary
+                                    : colors.onSurfaceDim,
+                            fontSize: _selectedPeriod == 'Monthly' ? 9 : 11,
+                            fontWeight: isSelected || isLast
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               }).toList(),
@@ -687,7 +749,10 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     final isSelected = _selectedPeriod == period;
     return GestureDetector(
       onTap: () {
-        setState(() => _selectedPeriod = period);
+        setState(() {
+          _selectedPeriod = period;
+          _selectedBarKey = null; // Clear selected bar when period changes
+        });
         Navigator.pop(context);
       },
       child: Container(
