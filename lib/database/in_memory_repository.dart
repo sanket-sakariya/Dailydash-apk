@@ -303,19 +303,21 @@ class InMemoryRepository implements DataRepository {
     final start = DateTime(now.year, now.month, 1);
     final end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
 
-    final dailyTotals = <String, double>{};
+    // Calculate total spent this month
+    double totalSpent = 0;
     for (final expense in _activeExpenses) {
       if (!expense.isIncome &&
-          expense.dateTime.isAfter(start) &&
+          expense.dateTime.isAfter(
+            start.subtract(const Duration(seconds: 1)),
+          ) &&
           expense.dateTime.isBefore(end)) {
-        final day =
-            '${expense.dateTime.year}-${expense.dateTime.month}-${expense.dateTime.day}';
-        dailyTotals[day] = (dailyTotals[day] ?? 0) + expense.amount;
+        totalSpent += expense.amount;
       }
     }
 
-    if (dailyTotals.isEmpty) return 0;
-    return dailyTotals.values.reduce((a, b) => a + b) / dailyTotals.length;
+    // Divide by days passed in current month
+    final daysPassed = now.day;
+    return totalSpent / daysPassed;
   }
 
   @override

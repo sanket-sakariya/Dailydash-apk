@@ -461,11 +461,17 @@ class DatabaseHelper implements DataRepository {
       59,
       59,
     ).toIso8601String();
+
+    // Get total spent this month
     final result = await db.rawQuery(
-      'SELECT COALESCE(AVG(daily_total), 0) as avg FROM (SELECT DATE(date_time) as day, SUM(amount) as daily_total FROM expenses WHERE date_time >= ? AND date_time <= ? AND is_income = 0 AND ${_activeExpensesCondition()} GROUP BY DATE(date_time))',
+      'SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE date_time >= ? AND date_time <= ? AND is_income = 0 AND ${_activeExpensesCondition()}',
       [start, end],
     );
-    return (result.first['avg'] as num?)?.toDouble() ?? 0;
+    final totalSpent = (result.first['total'] as num?)?.toDouble() ?? 0;
+
+    // Divide by days passed in current month (minimum 1)
+    final daysPassed = now.day;
+    return totalSpent / daysPassed;
   }
 
   @override

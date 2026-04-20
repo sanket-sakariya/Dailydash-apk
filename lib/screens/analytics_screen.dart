@@ -105,12 +105,12 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       body: _loading
           ? Center(child: CircularProgressIndicator(color: colors.primary))
           : SafeArea(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    Padding(
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Header
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
@@ -156,9 +156,11 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                         ],
                       ),
                     ),
+                  ),
 
-                    // Title
-                    Padding(
+                  // Title
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,19 +186,25 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                         ],
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 24),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                    // Donut Chart Card
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildDonutChartCard(colors),
+                  // Donut Chart Card - wrapped in RepaintBoundary for performance
+                  SliverToBoxAdapter(
+                    child: RepaintBoundary(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _buildDonutChartCard(colors),
+                      ),
                     ),
+                  ),
 
-                    const SizedBox(height: 20),
+                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-                    // Stats Row
-                    Padding(
+                  // Stats Row
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Row(
                         children: [
@@ -206,26 +214,32 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                         ],
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 20),
+                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-                    // Weekly Trends Card
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildTrendsCard(colors),
+                  // Weekly Trends Card - wrapped in RepaintBoundary for performance
+                  SliverToBoxAdapter(
+                    child: RepaintBoundary(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _buildTrendsCard(colors),
+                      ),
                     ),
+                  ),
 
-                    const SizedBox(height: 20),
+                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-                    // Smart Insight Card
-                    Padding(
+                  // Smart Insight Card
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: _buildSmartInsightCard(colors),
                     ),
+                  ),
 
-                    const SizedBox(height: 100),
-                  ],
-                ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
               ),
             ),
     );

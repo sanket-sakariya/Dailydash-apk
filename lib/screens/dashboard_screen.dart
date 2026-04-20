@@ -300,12 +300,12 @@ class DashboardScreenState extends State<DashboardScreen> {
       body: _loading
           ? Center(child: CircularProgressIndicator(color: colors.primary))
           : SafeArea(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Bar
-                    Padding(
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  // Top Bar
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
@@ -357,234 +357,37 @@ class DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 16),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-                    // Total Spent Card
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              colors.primaryContainer.withValues(alpha: 0.8),
-                              colors.primaryDim.withValues(alpha: 0.6),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'TOTAL SPENT THIS MONTH',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.7),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  currencyNotifier.symbol,
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.8),
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  _formatAmount(_totalSpentThisMonth),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 42,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _getPercentageChange() >= 0
-                                        ? Icons.trending_up
-                                        : Icons.trending_down,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${_getPercentageChange().abs().toStringAsFixed(0)}% vs last month',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                  // Total Spent Card
+                  SliverToBoxAdapter(
+                    child: RepaintBoundary(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _buildTotalSpentCard(colors),
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 20),
+                  const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-                    // Savings & Budgets Row
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: colors.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'SAVINGS',
-                                    style: TextStyle(
-                                      color: colors.onSurfaceDim,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    budgetNotifier.isSet
-                                        ? '${_savings >= 0 ? '' : '-'}${currencyNotifier.symbol}${_formatCompact(_savings.abs())}'
-                                        : '--',
-                                    style: TextStyle(
-                                      color: _savings >= 0
-                                          ? colors.secondary
-                                          : colors.error,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    budgetNotifier.isSet
-                                        ? (_savings >= 0
-                                              ? 'Under budget'
-                                              : 'Over budget')
-                                        : 'Set budget first',
-                                    style: TextStyle(
-                                      color: colors.onSurfaceDim,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: _showBudgetDialog,
-                              child: Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: colors.surfaceContainerLow,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'BUDGET',
-                                          style: TextStyle(
-                                            color: colors.onSurfaceDim,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: 1,
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.edit,
-                                          color: colors.primary,
-                                          size: 16,
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      budgetNotifier.isSet
-                                          ? '${currencyNotifier.symbol}${_formatCompact(budgetNotifier.value)}'
-                                          : 'Tap to set',
-                                      style: TextStyle(
-                                        color: budgetNotifier.isSet
-                                            ? colors.onSurface
-                                            : colors.primary,
-                                        fontSize: budgetNotifier.isSet
-                                            ? 24
-                                            : 18,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    if (budgetNotifier.isSet)
-                                      Text(
-                                        '${_budgetPercentage.toStringAsFixed(0)}% used',
-                                        style: TextStyle(
-                                          color: _budgetPercentage > 80
-                                              ? colors.error
-                                              : colors.onSurfaceDim,
-                                          fontSize: 11,
-                                        ),
-                                      )
-                                    else
-                                      Text(
-                                        'Monthly budget',
-                                        style: TextStyle(
-                                          color: colors.onSurfaceDim,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                  // Savings & Budgets Row
+                  SliverToBoxAdapter(
+                    child: RepaintBoundary(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _buildSavingsBudgetRow(colors),
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 28),
+                  const SliverToBoxAdapter(child: SizedBox(height: 28)),
 
-                    // Recent Transactions Header
-                    Padding(
+                  // Recent Transactions Header
+                  SliverToBoxAdapter(
+                    child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -619,15 +422,22 @@ class DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 16),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-                    // Transactions List
-                    ..._buildTransactionList(colors),
+                  // Transactions List using SliverList for performance
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        return _buildTransactionListItem(index, colors);
+                      },
+                      childCount: _getTransactionListItemCount(),
+                    ),
+                  ),
 
-                    const SizedBox(height: 100),
-                  ],
-                ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                ],
               ),
             ),
       floatingActionButton: Container(
@@ -650,8 +460,224 @@ class DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  List<Widget> _buildTransactionList(DailyDashColorScheme colors) {
-    final widgets = <Widget>[];
+  Widget _buildTotalSpentCard(DailyDashColorScheme colors) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colors.primaryContainer.withValues(alpha: 0.8),
+            colors.primaryDim.withValues(alpha: 0.6),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'TOTAL SPENT THIS MONTH',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                currencyNotifier.symbol,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _formatAmount(_totalSpentThisMonth),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 6,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _getPercentageChange() >= 0
+                      ? Icons.trending_up
+                      : Icons.trending_down,
+                  color: Colors.white,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${_getPercentageChange().abs().toStringAsFixed(0)}% vs last month',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSavingsBudgetRow(DailyDashColorScheme colors) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SAVINGS',
+                  style: TextStyle(
+                    color: colors.onSurfaceDim,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  budgetNotifier.isSet
+                      ? '${_savings >= 0 ? '' : '-'}${currencyNotifier.symbol}${_formatCompact(_savings.abs())}'
+                      : '--',
+                  style: TextStyle(
+                    color: _savings >= 0
+                        ? colors.secondary
+                        : colors.error,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  budgetNotifier.isSet
+                      ? (_savings >= 0
+                            ? 'Under budget'
+                            : 'Over budget')
+                      : 'Set budget first',
+                  style: TextStyle(
+                    color: colors.onSurfaceDim,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: GestureDetector(
+            onTap: _showBudgetDialog,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment:
+                        MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'BUDGET',
+                        style: TextStyle(
+                          color: colors.onSurfaceDim,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      Icon(
+                        Icons.edit,
+                        color: colors.primary,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    budgetNotifier.isSet
+                        ? '${currencyNotifier.symbol}${_formatCompact(budgetNotifier.value)}'
+                        : 'Tap to set',
+                    style: TextStyle(
+                      color: budgetNotifier.isSet
+                          ? colors.onSurface
+                          : colors.primary,
+                      fontSize: budgetNotifier.isSet
+                          ? 24
+                          : 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (budgetNotifier.isSet)
+                    Text(
+                      '${_budgetPercentage.toStringAsFixed(0)}% used',
+                      style: TextStyle(
+                        color: _budgetPercentage > 80
+                            ? colors.error
+                            : colors.onSurfaceDim,
+                        fontSize: 11,
+                      ),
+                    )
+                  else
+                    Text(
+                      'Monthly budget',
+                      style: TextStyle(
+                        color: colors.onSurfaceDim,
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Pre-computed transaction list structure for performance
+  List<_TransactionListEntry> get _transactionListEntries {
+    final entries = <_TransactionListEntry>[];
     String? currentDate;
 
     for (final expense in _recentExpenses) {
@@ -659,26 +685,38 @@ class DashboardScreenState extends State<DashboardScreen> {
 
       if (date != currentDate) {
         currentDate = date;
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Text(
-              date,
-              style: TextStyle(
-                color: colors.onSurfaceDim,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
-        );
+        entries.add(_TransactionListEntry.header(date));
       }
-
-      widgets.add(_buildTransactionItem(expense, colors));
+      entries.add(_TransactionListEntry.item(expense));
     }
 
-    return widgets;
+    return entries;
+  }
+
+  int _getTransactionListItemCount() => _transactionListEntries.length;
+
+  Widget _buildTransactionListItem(int index, DailyDashColorScheme colors) {
+    final entries = _transactionListEntries;
+    if (index >= entries.length) return const SizedBox.shrink();
+
+    final entry = entries[index];
+    if (entry.isHeader) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: Text(
+          entry.headerDate!,
+          style: TextStyle(
+            color: colors.onSurfaceDim,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.5,
+          ),
+        ),
+      );
+    }
+    return RepaintBoundary(
+      child: _buildTransactionItem(entry.expense!, colors),
+    );
   }
 
   Future<void> _deleteExpense(Expense expense) async {
@@ -1092,4 +1130,19 @@ class DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+}
+
+// Helper class for efficient list building
+class _TransactionListEntry {
+  final bool isHeader;
+  final String? headerDate;
+  final Expense? expense;
+
+  _TransactionListEntry.header(this.headerDate)
+      : isHeader = true,
+        expense = null;
+
+  _TransactionListEntry.item(this.expense)
+      : isHeader = false,
+        headerDate = null;
 }

@@ -62,9 +62,13 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
           ) ||
           expense.category.toLowerCase().contains(_searchQuery.toLowerCase());
 
+      // Handle "Shopping" filter matching "Shop" category
+      final categoryLower = expense.category.toLowerCase();
+      final selectedLower = _selectedCategory.toLowerCase();
       final matchesCategory =
           _selectedCategory == 'All' ||
-          expense.category.toLowerCase() == _selectedCategory.toLowerCase();
+          categoryLower == selectedLower ||
+          (selectedLower == 'shopping' && categoryLower == 'shop');
 
       return matchesSearch && matchesCategory;
     }).toList();
@@ -527,35 +531,14 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
     );
   }
 
-  List<Widget> _buildTransactionList(DailyDashColorScheme colors) {
-    final widgets = <Widget>[];
+  // Pre-computed transaction list entries for performance
+  List<_TransactionListEntry> get _transactionListEntries {
+    final entries = <_TransactionListEntry>[];
     String? currentDate;
     final expenses = _filteredExpenses;
 
     if (expenses.isEmpty) {
-      return [
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.receipt_long_outlined,
-                  size: 64,
-                  color: colors.onSurfaceDim,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _searchQuery.isNotEmpty || _selectedCategory != 'All'
-                      ? 'No transactions found'
-                      : 'No transactions yet',
-                  style: TextStyle(color: colors.onSurfaceDim, fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ];
+      return entries;
     }
 
     for (final expense in expenses) {
@@ -563,26 +546,61 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
 
       if (date != currentDate) {
         currentDate = date;
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Text(
-              date,
-              style: TextStyle(
-                color: colors.onSurfaceDim,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
-        );
+        entries.add(_TransactionListEntry.header(date));
       }
-
-      widgets.add(_buildTransactionItem(expense, colors));
+      entries.add(_TransactionListEntry.item(expense));
     }
 
-    return widgets;
+    return entries;
+  }
+
+  Widget _buildTransactionListItem(int index, DailyDashColorScheme colors) {
+    final entries = _transactionListEntries;
+    if (index >= entries.length) return const SizedBox.shrink();
+
+    final entry = entries[index];
+    if (entry.isHeader) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: Text(
+          entry.headerDate!,
+          style: TextStyle(
+            color: colors.onSurfaceDim,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.5,
+          ),
+        ),
+      );
+    }
+    return RepaintBoundary(
+      child: _buildTransactionItem(entry.expense!, colors),
+    );
+  }
+
+  Widget _buildEmptyState(DailyDashColorScheme colors) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 64,
+              color: colors.onSurfaceDim,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _searchQuery.isNotEmpty || _selectedCategory != 'All'
+                  ? 'No transactions found'
+                  : 'No transactions yet',
+              style: TextStyle(color: colors.onSurfaceDim, fontSize: 16),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -715,12 +733,24 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
 
                 const SizedBox(height: 8),
 
-                // Transactions list
+                // Transactions list using ListView.builder for performance
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _loadData,
                     color: colors.primary,
-                    child: ListView(children: _buildTransactionList(colors)),
+                    child: _filteredExpenses.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [_buildEmptyState(colors)],
+                          )
+                        : ListView.builder(
+                            physics: const BouncingScrollPhysics(
+                              parent: AlwaysScrollableScrollPhysics(),
+                            ),
+                            itemCount: _transactionListEntries.length,
+                            itemBuilder: (context, index) =>
+                                _buildTransactionListItem(index, colors),
+                          ),
                   ),
                 ),
               ],
@@ -737,4 +767,19 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
       ),
     );
   }
+}
+
+// Helper class for efficient list building
+class _TransactionListEntry {
+  final bool isHeader;
+  final String? headerDate;
+  final Expense? expense;
+
+  _TransactionListEntry.header(this.headerDate)
+      : isHeader = true,
+        expense = null;
+
+  _TransactionListEntry.item(this.expense)
+      : isHeader = false,
+        headerDate = null;
 }
