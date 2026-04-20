@@ -2,7 +2,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../main.dart' show repo, usernameNotifier, avatarNotifier, budgetNotifier, currencyNotifier;
+import '../main.dart'
+    show
+        repo,
+        usernameNotifier,
+        avatarNotifier,
+        budgetNotifier,
+        currencyNotifier;
 import 'sync_service.dart';
 import 'profile_service.dart';
 
@@ -53,17 +59,19 @@ class AuthService {
 
   /// Initialize the auth service and listen to auth state changes
   void initialize() {
-    // Check for existing session
+    // Immediately check for existing session - don't wait for stream
     final session = _supabase.auth.currentSession;
-    if (session != null) {
-      currentUserNotifier.value = _supabase.auth.currentUser;
+    final user = _supabase.auth.currentUser;
+
+    if (session != null && user != null) {
+      currentUserNotifier.value = user;
       authStateNotifier.value = AppAuthState.authenticated;
     } else {
       authStateNotifier.value = AppAuthState.unauthenticated;
     }
 
-    // Listen to auth state changes
-    _supabase.auth.onAuthStateChange.listen((data) {
+    // Listen to auth state changes for future updates
+    _authSubscription = _supabase.auth.onAuthStateChange.listen((data) {
       final event = data.event;
       final session = data.session;
 
@@ -80,10 +88,13 @@ class AuthService {
           authStateNotifier.value = AppAuthState.unauthenticated;
           break;
         case AuthChangeEvent.initialSession:
-          if (session != null) {
+          // Only update if different from current state to avoid flicker
+          if (session != null &&
+              authStateNotifier.value != AppAuthState.authenticated) {
             currentUserNotifier.value = session.user;
             authStateNotifier.value = AppAuthState.authenticated;
-          } else {
+          } else if (session == null &&
+              authStateNotifier.value != AppAuthState.unauthenticated) {
             authStateNotifier.value = AppAuthState.unauthenticated;
           }
           break;
@@ -98,22 +109,22 @@ class AuthService {
     final userId = currentUserId;
     if (userId == null) return;
 
-    // Delay to ensure UI is ready
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Run in background - don't block UI
+    Future.microtask(() async {
+      try {
+        // Assign any orphaned local expenses to this user
+        await repo.assignUserIdToOrphans(userId);
+      } catch (e) {
+        debugPrint('Error assigning orphans: $e');
+      }
 
-    try {
-      // Assign any orphaned local expenses to this user
-      await repo.assignUserIdToOrphans(userId);
-    } catch (e) {
-      debugPrint('Error assigning orphans: $e');
-    }
-
-    try {
-      // Trigger a full sync to pull any existing cloud data
-      await SyncService.instance.fullSync();
-    } catch (e) {
-      debugPrint('Error during sync: $e');
-    }
+      try {
+        // Trigger a full sync to pull any existing cloud data
+        await SyncService.instance.fullSync();
+      } catch (e) {
+        debugPrint('Error during sync: $e');
+      }
+    });
   }
 
   /// Sign up with email and password
@@ -227,10 +238,7 @@ class AuthService {
 
     try {
       // Use signInWithOtp to send OTP - this creates user if doesn't exist
-      await _supabase.auth.signInWithOtp(
-        email: email,
-        shouldCreateUser: true,
-      );
+      await _supabase.auth.signInWithOtp(email: email, shouldCreateUser: true);
     } on AuthException catch (e) {
       errorNotifier.value = e.message;
       rethrow;
@@ -261,9 +269,7 @@ class AuthService {
       }
 
       // OTP verified and user is signed in, now set the password
-      await _supabase.auth.updateUser(
-        UserAttributes(password: password),
-      );
+      await _supabase.auth.updateUser(UserAttributes(password: password));
 
       currentUserNotifier.value = verifyResponse.user;
       authStateNotifier.value = AppAuthState.authenticated;

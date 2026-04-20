@@ -22,25 +22,27 @@ late final SharedPreferences prefs;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize shared preferences for settings persistence
-  prefs = await SharedPreferences.getInstance();
+  // Run SharedPreferences and Supabase initialization in parallel
+  final results = await Future.wait([
+    SharedPreferences.getInstance(),
+    Supabase.initialize(
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.anonKey,
+    ),
+  ]);
 
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.anonKey,
-  );
+  prefs = results[0] as SharedPreferences;
 
   // Use in-memory on web (sqflite WASM is unreliable), SQLite on native
   if (kIsWeb) {
     repo = InMemoryRepository.instance;
   } else {
     repo = DatabaseHelper.instance;
-    // Pre-initialize the database to ensure it's ready
-    await (repo as DatabaseHelper).database;
+    // Initialize database in background - don't await
+    (repo as DatabaseHelper).database;
   }
 
-  // Initialize auth and sync services
+  // Initialize auth and sync services (these are fast, non-blocking)
   AuthService.instance.initialize();
   SyncService.instance.initialize();
 
@@ -276,29 +278,182 @@ class AuthGate extends StatelessWidget {
   }
 }
 
-/// Loading screen shown while checking auth state
-class _LoadingScreen extends StatelessWidget {
+/// Loading screen shown while checking auth state - shows skeleton of dashboard
+class _LoadingScreen extends StatefulWidget {
   const _LoadingScreen();
+
+  @override
+  State<_LoadingScreen> createState() => _LoadingScreenState();
+}
+
+class _LoadingScreenState extends State<_LoadingScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat();
+
+    _animation = Tween<double>(begin: -2, end: 2).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Scaffold(
       backgroundColor: colors.background,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.account_balance_wallet_rounded,
-              size: 80,
-              color: colors.primary,
-            ),
-            const SizedBox(height: 24),
-            CircularProgressIndicator(color: colors.primary),
-          ],
+      body: SafeArea(
+        child: AnimatedBuilder(
+          animation: _animation,
+          builder: (context, child) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Bar skeleton
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          _buildSkeletonBox(40, 40, colors, isCircle: true),
+                          const SizedBox(width: 12),
+                          _buildSkeletonBox(100, 20, colors),
+                        ],
+                      ),
+                      _buildSkeletonBox(24, 24, colors, isCircle: true),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Total Spent Card skeleton
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildSkeletonBox(
+                    double.infinity,
+                    160,
+                    colors,
+                    borderRadius: 24,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Savings & Budget Row skeleton
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildSkeletonBox(
+                          double.infinity,
+                          120,
+                          colors,
+                          borderRadius: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildSkeletonBox(
+                          double.infinity,
+                          120,
+                          colors,
+                          borderRadius: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                // Recent Transactions Header skeleton
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildSkeletonBox(160, 20, colors),
+                      _buildSkeletonBox(60, 14, colors),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Transaction items skeleton
+                ...List.generate(
+                  3,
+                  (index) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 6,
+                    ),
+                    child: _buildSkeletonBox(
+                      double.infinity,
+                      76,
+                      colors,
+                      borderRadius: 20,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
+    );
+  }
+
+  Widget _buildSkeletonBox(
+    double width,
+    double height,
+    DailyDashColorScheme colors, {
+    double borderRadius = 8,
+    bool isCircle = false,
+  }) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius:
+                isCircle ? null : BorderRadius.circular(borderRadius),
+            shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
+            gradient: LinearGradient(
+              begin: Alignment(_animation.value, 0),
+              end: Alignment(_animation.value + 1, 0),
+              colors: [
+                colors.surfaceContainerLow,
+                colors.surfaceContainerHigh.withValues(alpha: 0.5),
+                colors.surfaceContainerLow,
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+        );
+      },
     );
   }
 }

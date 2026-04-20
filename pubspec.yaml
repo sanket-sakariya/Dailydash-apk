@@ -38,21 +38,17 @@ dev_dependencies:
 
 flutter_native_splash:
   color: "#000000"
-  image: assets/images/dailydash_logo_new.png
   color_dark: "#000000"
-  image_dark: assets/images/dailydash_logo_new.png
   android_12:
     color: "#000000"
-    image: assets/images/dailydash_logo_new.png
     color_dark: "#000000"
-    image_dark: assets/images/dailydash_logo_new.png
 
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/dailydash_logo_new.png"
+  image_path: "assets/images/dailydash_logo.png"
   adaptive_icon_background: "#1A1A2E"
-  adaptive_icon_foreground: "assets/images/dailydash_logo_new.png"
+  adaptive_icon_foreground: "assets/images/dailydash_logo.png"
   remove_alpha_ios: true
 
 flutter:
