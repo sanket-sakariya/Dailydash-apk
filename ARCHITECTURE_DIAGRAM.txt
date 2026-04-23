@@ -1,0 +1,314 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                          DAILYDASH ARCHITECTURE                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                            PRESENTATION LAYER (UI)                             │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌─────────────────────────────────────────────────────────────────────────┐  │
+│  │                           MAIN SHELL (Tab Navigation)                   │  │
+│  │  IndexedStack with 3 tabs + Auth Gate                                   │  │
+│  └──────────────────────────┬──────────────────────────────────────────────┘  │
+│                             │                                                  │
+│         ┌───────────────────┼───────────────────┐                            │
+│         ▼                   ▼                   ▼                             │
+│  ┌──────────────┐    ┌──────────────┐  ┌──────────────┐                    │
+│  │  Dashboard   │    │  Analytics   │  │  Settings    │                    │
+│  │  Screen      │    │  Screen      │  │  Screen      │                    │
+│  │ (1,148 LOC)  │    │ (892 LOC)    │  │ (2,389 LOC)  │                    │
+│  └──────┬───────┘    └──────┬───────┘  └──────┬───────┘                    │
+│         │                   │                   │                            │
+│         └───────────────────┼───────────────────┘                           │
+│                             │                                                │
+│                 ┌─────────────────────────┐                                 │
+│                 │ Child Screens           │                                 │
+│                 ├─────────────────────────┤                                 │
+│                 │ • Add Expense Screen    │                                 │
+│                 │ • All Transactions      │                                 │
+│                 │ • Auth Screens (Login)  │                                 │
+│                 │ • Change Password/Email │                                 │
+│                 └────────────┬────────────┘                                 │
+│                              │                                              │
+└──────────────────────────────┼──────────────────────────────────────────────┘
+                               │
+┌──────────────────────────────┼──────────────────────────────────────────────┐
+│                    REACTIVE STATE LAYER (ValueNotifiers)                    │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ Global State (in main.dart)                                            │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │ • currencyNotifier (↔ ProfileService)     • darkModeNotifier          │ │
+│  │ • languageNotifier                        • budgetNotifier (↔ Prof)   │ │
+│  │ • usernameNotifier (↔ ProfileService)     • notificationsNotifier     │ │
+│  │ • profileImageNotifier                    • navigationIndexNotifier   │ │
+│  │ • avatarNotifier (↔ ProfileService)                                   │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ AuthService State                                                      │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │ • currentUserNotifier: User?                                           │ │
+│  │ • authStateNotifier: {unknown, authenticated, unauthenticated}        │ │
+│  │ • isLoadingNotifier: bool                                             │ │
+│  │ • errorNotifier: String?                                              │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ SyncService State                                                      │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │ • syncStatusNotifier: {idle, syncing, synced, offline, error}         │ │
+│  │ • pendingCountNotifier: int                                           │ │
+│  │ • isOnlineNotifier: bool                                              │ │
+│  │ • lastErrorNotifier: String?                                          │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ ProfileService State                                                   │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │ • profileNotifier: UserProfile?                                       │ │
+│  │ • avatarImageNotifier: String? (base64)                               │ │
+│  │ • isLoadingNotifier: bool                                             │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │ ValueListenableBuilder
+                               │
+┌──────────────────────────────┼──────────────────────────────────────────────┐
+│                        SERVICES LAYER (Business Logic)                      │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ AuthService (Singleton)                                                │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │ • initialize()          • signUp()          • signIn()                │ │
+│  │ • signOut()             • changePassword()  • changeEmail()           │ │
+│  │ • resetPassword()       • deleteAccount()                             │ │
+│  │ Manages Supabase Auth + State                                         │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ ProfileService (Singleton)                                             │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │ • loadProfile()         • updateDisplayName()                          │ │
+│  │ • updateAvatarType()    • updateMonthlyBudget()                       │ │
+│  │ • updateCurrency()      • uploadAvatarImage()                          │ │
+│  │ Manages UserProfile + Avatar, image compression, base64 encode        │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ SyncService (Singleton) - Outbox Pattern                               │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │ • initialize()          • triggerSync()                                │ │
+│  │ • pushUnsynced()        • pullFromRemote()                             │ │
+│  │ • resolveConflicts()    (Last-Write-Wins via last_modified)           │ │
+│  │ Manages bi-directional sync, connectivity monitoring, conflict res.   │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+┌──────────────────────────────┼──────────────────────────────────────────────┐
+│                     DATA LAYER (Repository Pattern)                         │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │ DataRepository (Abstract Interface)                                    │ │
+│  ├────────────────────────────────────────────────────────────────────────┤ │
+│  │ CRUD Operations:                                                       │ │
+│  │   • getAllExpenses()    • getExpensesByDateRange()                     │ │
+│  │   • insertExpense()     • updateExpense()    • deleteExpense()         │ │
+│  │                                                                         │ │
+│  │ Analytics Operations:                                                  │ │
+│  │   • getCategorySpending()  • getWeeklySpending()                       │ │
+│  │   • getDailySpending()     • getMonthlySpending()                      │ │
+│  │   • getAverageDailySpend() • getHighestCategory()                      │ │
+│  │                                                                         │ │
+│  │ Sync Operations:                                                       │ │
+│  │   • getUnsyncedExpenses()  • markAsSynced()    • hardDelete()          │ │
+│  │   • upsertFromRemote()     • assignUserIdToOrphans()                   │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+│         ┌──────────────────────────────────────────────────────┐            │
+│         │       Platform-Specific Implementation               │            │
+│         └────────────────────┬─────────────────────────────────┘            │
+│                              │                                              │
+│              ┌───────────────┴────────────────┐                            │
+│              ▼                                ▼                             │
+│    ┌─────────────────────┐        ┌─────────────────────────┐             │
+│    │ DatabaseHelper      │        │ InMemoryRepository      │             │
+│    │ (Native Platforms)  │        │ (Web/Testing)           │             │
+│    ├─────────────────────┤        ├─────────────────────────┤             │
+│    │ • SQLite via sqflite│        │ • Array-based storage   │             │
+│    │ • dailydash.db      │        │ • Pre-seeded sample     │             │
+│    │ • Singleton pattern │        │ • No persistence        │             │
+│    │ • Full CRUD + Sync  │        │ • Full interface impl   │             │
+│    └─────────────────────┘        └─────────────────────────┘             │
+│                                                                              │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+┌──────────────────────────────┼──────────────────────────────────────────────┐
+│                  DATABASE LAYER (Local + Remote)                            │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────┐  ┌──────────────────────────────┐ │
+│  │ SQLite (Native Platforms)           │  │ Supabase (Cloud Backend)     │ │
+│  ├─────────────────────────────────────┤  ├──────────────────────────────┤ │
+│  │ dailydash.db                        │  │ PostgreSQL Database          │ │
+│  │                                     │  │                              │ │
+│  │ Tables:                             │  │ Tables:                      │ │
+│  │ • expenses                          │  │ • public.expenses            │ │
+│  │   - id (UUID)                       │  │   - UUID PK                  │ │
+│  │   - amount, date_time               │  │   - amount, date_time        │ │
+│  │   - category, payment_mode          │  │   - category, payment_mode   │ │
+│  │   - is_income, user_id              │  │   - is_income, user_id (FK)  │ │
+│  │   - is_synced, is_deleted           │  │   - last_modified            │ │
+│  │   - last_modified                   │  │   - is_deleted (soft)        │ │
+│  │                                     │  │                              │ │
+│  │ • settings (key-value)              │  │ • public.user_profiles       │ │
+│  │                                     │  │   - id (UUID PK)             │ │
+│  │ Indices:                            │  │   - display_name             │ │
+│  │ • date_time DESC                    │  │   - avatar_type              │ │
+│  │ • category                          │  │   - monthly_budget           │ │
+│  │ • user_id                           │  │   - currency                 │ │
+│  │ • is_synced                         │  │   - avatar_image (base64)    │ │
+│  │                                     │  │                              │ │
+│  │ Access: Singleton DatabaseHelper    │  │ Security: RLS Policies       │ │
+│  │ Persistence: App documents dir      │  │ Auth: JWT tokens via Supabase│ │
+│  └─────────────────────────────────────┘  └──────────────────────────────┘ │
+│                                                                              │
+│                    ┌───────────────────────────────┐                        │
+│                    │ Sync Flow (Outbox Pattern)    │                        │
+│                    ├───────────────────────────────┤                        │
+│                    │ 1. User Action                │                        │
+│                    │ 2. Write to SQLite (isSynced) │                        │
+│                    │ 3. Update UI immediately      │                        │
+│                    │ 4. Background: Push unsynced  │                        │
+│                    │ 5. Conflict Resolution (LWW)  │                        │
+│                    │ 6. Pull changes from Supabase │                        │
+│                    │ 7. Update pending count       │                        │
+│                    └───────────────────────────────┘                        │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+DATA FLOW: User Adds Expense
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. User enters amount via custom numpad
+2. Selects category, payment mode, date
+3. Confirms transaction
+
+   AddExpenseScreen
+       │
+       ├─► repo.insertExpense(Expense)
+       │
+       ▼
+   Database Layer
+   ├─► SQLite: INSERT with isSynced=0
+   ├─► Return expense id
+       │
+       ├─► Update state notifier
+       │
+       ▼
+   DashboardScreen
+   └─► Rebuilds with new expense
+
+   [Parallel - Background Sync]
+   SyncService
+   ├─► Detects SQLite change
+   ├─► Calls triggerSync()
+   ├─► pushUnsynced() → Push to Supabase
+   ├─► Conflict Resolution
+   ├─► pullFromRemote() → Fetch updates
+   └─► Update pendingCountNotifier
+
+═══════════════════════════════════════════════════════════════════════════════
+
+MODEL SERIALIZATION
+━━━━━━━━━━━━━━━━
+
+Expense Model:
+  ┌──────────────────┐
+  │  In-Memory       │
+  │  Expense Object  │
+  └────────┬─────────┘
+           │
+    ┌──────┴──────┐
+    │             │
+    ▼             ▼
+  toMap()       toJson()
+    │             │
+    ▼             ▼
+  ┌─────────┐  ┌──────────────┐
+  │ SQLite  │  │ Supabase     │
+  │ Row     │  │ JSON         │
+  │ (ints)  │  │ (native)     │
+  └─────────┘  └──────────────┘
+    │             │
+    ▼             ▼
+  fromMap()     fromJson()
+    │             │
+    └──────┬──────┘
+           │
+    ┌──────▼──────────┐
+    │ Expense Object  │
+    │ (in memory)     │
+    └─────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STATE MANAGEMENT FLOW: Currency Change
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+User selects EUR in Settings
+
+  SettingsScreen
+       │
+       ▼
+  currencyNotifier.setCurrency('EUR')
+       │
+       ├─► Update ValueNotifier value
+       ├─► Save to SharedPreferences
+       └─► ProfileService.updateCurrency('EUR')
+           │
+           ├─► Supabase upsert
+           └─► Update ProfileService.profileNotifier
+                   │
+                   └─► AnalyticsScreen rebuilds (ValueListenableBuilder)
+                       └─► Charts update with EUR currency symbol
+
+═══════════════════════════════════════════════════════════════════════════════
+
+KEY PATTERNS USED
+━━━━━━━━━━━━━━━
+
+1. REPOSITORY PATTERN
+   Screens → DataRepository → Platform Implementation
+
+2. SINGLETON PATTERN
+   • DatabaseHelper.instance
+   • AuthService.instance
+   • SyncService.instance
+   • ProfileService.instance
+
+3. IMMUTABLE DATA MODELS
+   • Expense.copyWith({...})
+   • UserProfile.copyWith({...})
+
+4. OUTBOX PATTERN (Sync)
+   • Write locally first (isSynced=0)
+   • Background push + pull
+   • Last-Write-Wins conflict resolution
+
+5. VALUE NOTIFIER PATTERN
+   • Global state without external library
+   • ValueListenableBuilder for reactivity
+   • Listeners for side effects
+
+6. PLATFORM ABSTRACTION
+   • kIsWeb check for platform-specific code
+   • Single interface, multiple implementations
+
+═══════════════════════════════════════════════════════════════════════════════
